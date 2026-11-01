@@ -47,6 +47,11 @@ class AppStrings {
     'The token will be removed from this phone. You will need to scan the QR code again.',
   );
 
+  String get forgetRemoteFailed => _t(
+    'Dihapus dari HP, tetapi PC tidak terjangkau. Cabut juga perangkat ini di Settings Notchi PC.',
+    'Removed from this phone, but the PC was unreachable. Also revoke this device in Notchi PC settings.',
+  );
+
   String get scanTitle => _t('Pindai QR', 'Scan QR');
 
   String get scanHint => _t(
@@ -174,4 +179,26 @@ class AppStrings {
       _t('Terjadi kesalahan di PC.', 'Something went wrong on the PC.');
 
   String get errorUnknown => _t('Terjadi kesalahan.', 'Something went wrong.');
+
+  String get connectionOnline => _t('Terhubung', 'Connected');
+
+  String get connectionConnecting => _t('Menghubungkan...', 'Connecting...');
+
+  String get connectionReconnecting =>
+      _t('Menyambung ulang...', 'Reconnecting...');
+
+  String get connectionOffline => _t('Tidak terhubung', 'Not connected');
+
+  String get connectionRevoked =>
+      _t('Akses dicabut. Pasangkan ulang.', 'Access revoked. Pair again.');
+
+  String get connectionDisabled => _t(
+    'Notchi Mobile dimatikan di PC.',
+    'Notchi Mobile is disabled on the PC.',
+  );
+
+  String get connectionUnauthorized => _t(
+    'Token tidak valid. Pasangkan ulang.',
+    'Invalid token. Pair again.',
+  );
 }

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notchi_mobile/app.dart';
 import 'package:notchi_mobile/core/errors/api_error.dart';
 import 'package:notchi_mobile/core/storage/secure_store.dart';
+import 'package:notchi_mobile/features/connection/state/connection_providers.dart';
 import 'package:notchi_mobile/features/pairing/state/pairing_providers.dart';
 import 'package:notchi_mobile/features/pairing/state/session_providers.dart';
 import 'package:notchi_mobile/features/pairing/ui/pairing_progress_screen.dart';
@@ -51,7 +52,10 @@ void main() {
     await tester.pumpWidget(
       _app(
         const NotchiMobileApp(),
-        overrides: [keyValueStoreProvider.overrideWithValue(store)],
+        overrides: [
+          keyValueStoreProvider.overrideWithValue(store),
+          wsConnectorProvider.overrideWithValue(FakeWsConnector()),
+        ],
       ),
     );
     await tester.pumpAndSettle();
@@ -59,6 +63,89 @@ void main() {
     expect(find.text('Connected to LAPTOP-TEST'), findsOneWidget);
     expect(find.text('192.168.1.10:8765'), findsOneWidget);
     expect(find.text('Forget device'), findsOneWidget);
+  });
+
+  testWidgets('forget revokes the device and clears the local session', (
+    tester,
+  ) async {
+    final store = InMemoryKeyValueStore();
+    await SessionStore(store).saveSession(
+      const SavedSession(
+        sessionToken: 'token',
+        pcId: 'pc-1',
+        pcName: 'LAPTOP-TEST',
+        host: '192.168.1.10',
+        port: 8765,
+        apiVersion: 1,
+      ),
+    );
+    final api = FakeApi();
+
+    await tester.pumpWidget(
+      _app(
+        const NotchiMobileApp(),
+        overrides: [
+          apiClientProvider.overrideWithValue(api),
+          keyValueStoreProvider.overrideWithValue(store),
+          wsConnectorProvider.overrideWithValue(FakeWsConnector()),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Forget device'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Forget device'));
+    await tester.pumpAndSettle();
+
+    expect(api.deleteCalls, 1);
+    expect(api.lastSessionToken, 'token');
+    expect(await SessionStore(store).readSession(), isNull);
+    expect(find.text('Not connected'), findsOneWidget);
+  });
+
+  testWidgets('forget clears the session even when the PC is unreachable', (
+    tester,
+  ) async {
+    final store = InMemoryKeyValueStore();
+    await SessionStore(store).saveSession(
+      const SavedSession(
+        sessionToken: 'token',
+        pcId: 'pc-1',
+        pcName: 'LAPTOP-TEST',
+        host: '192.168.1.10',
+        port: 8765,
+        apiVersion: 1,
+      ),
+    );
+    final api = FakeApi(deleteError: const ApiError(ApiErrorCode.network));
+
+    await tester.pumpWidget(
+      _app(
+        const NotchiMobileApp(),
+        overrides: [
+          apiClientProvider.overrideWithValue(api),
+          keyValueStoreProvider.overrideWithValue(store),
+          wsConnectorProvider.overrideWithValue(FakeWsConnector()),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Forget device'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Forget device'));
+    await tester.pumpAndSettle();
+
+    expect(api.deleteCalls, 1);
+    expect(await SessionStore(store).readSession(), isNull);
+    expect(
+      find.text(
+        'Removed from this phone, but the PC was unreachable. '
+        'Also revoke this device in Notchi PC settings.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('manual pairing reaches the success state', (tester) async {

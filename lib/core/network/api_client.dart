@@ -15,6 +15,12 @@ abstract interface class NotchiApi {
     required String deviceId,
     required String deviceName,
   });
+
+  Future<void> deleteDevice({
+    required String host,
+    required int port,
+    required String sessionToken,
+  });
 }
 
 class ApiClient implements NotchiApi {
@@ -72,6 +78,26 @@ class ApiClient implements NotchiApi {
     } on FormatException catch (error) {
       throw ApiError(ApiErrorCode.internalError, detail: error.message);
     }
+  }
+
+  @override
+  Future<void> deleteDevice({
+    required String host,
+    required int port,
+    required String sessionToken,
+  }) async {
+    try {
+      await _dio.deleteUri(
+        _uri(host, port, '/devices/me'),
+        options: Options(headers: _authorization(sessionToken)),
+      );
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    }
+  }
+
+  Map<String, String> _authorization(String sessionToken) {
+    return {'Authorization': 'Bearer $sessionToken'};
   }
 
   Uri _uri(String host, int port, String path) {

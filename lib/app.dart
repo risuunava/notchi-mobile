@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'features/connection/ui/connection_lifecycle.dart';
 import 'features/pairing/ui/home_screen.dart';
 
 class NotchiMobileApp extends StatelessWidget {
@@ -24,7 +25,7 @@ class NotchiMobileApp extends StatelessWidget {
       ),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('en'), Locale('id')],
-      home: const HomeScreen(),
+      home: const ConnectionLifecycle(child: HomeScreen()),
     );
   }
 }

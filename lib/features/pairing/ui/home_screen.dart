@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/api_error.dart';
 import '../../../core/l10n/strings.dart';
 import '../../../core/storage/secure_store.dart';
+import '../../connection/ui/connection_indicator.dart';
+import '../state/pairing_providers.dart';
 import '../state/session_providers.dart';
 import 'manual_connect_screen.dart';
 import 'scan_screen.dart';
@@ -15,8 +18,19 @@ class HomeScreen extends ConsumerWidget {
     final strings = AppStrings.of(context);
     final session = ref.watch(savedSessionProvider);
 
+    final showIndicator = session.asData?.value != null;
+
     return Scaffold(
-      appBar: AppBar(title: Text(strings.appTitle)),
+      appBar: AppBar(
+        title: Text(strings.appTitle),
+        actions: [
+          if (showIndicator)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(child: ConnectionIndicator()),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: session.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -180,7 +194,28 @@ class _ConnectedView extends ConsumerWidget {
 
     if (confirmed != true) return;
 
+    var remoteFailed = false;
+    try {
+      await ref
+          .read(apiClientProvider)
+          .deleteDevice(
+            host: session.host,
+            port: session.port,
+            sessionToken: session.sessionToken,
+          );
+    } on ApiError catch (error) {
+      remoteFailed = error.code != ApiErrorCode.invalidToken;
+    } catch (_) {
+      remoteFailed = true;
+    }
+
     await ref.read(sessionStoreProvider).clearSession();
     ref.invalidate(savedSessionProvider);
+
+    if (remoteFailed && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.forgetRemoteFailed)));
+    }
   }
 }

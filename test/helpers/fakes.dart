@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:notchi_mobile/core/network/api_client.dart';
+import 'package:notchi_mobile/core/network/ws_connector.dart';
 import 'package:notchi_mobile/core/storage/secure_store.dart';
+import 'package:notchi_mobile/features/connection/state/connection_providers.dart';
 import 'package:notchi_mobile/features/pairing/state/pairing_providers.dart';
 import 'package:notchi_mobile/features/pairing/state/session_providers.dart';
 import 'package:notchi_mobile/models/pair_result.dart';
@@ -30,19 +32,23 @@ class FakeApi implements NotchiApi {
     this.result = testPairResult,
     this.infoError,
     this.pairError,
+    this.deleteError,
   });
 
   PcInfo info;
   PairResult result;
   Object? infoError;
   Object? pairError;
+  Object? deleteError;
   Completer<PairResult>? pairCompleter;
 
   int infoCalls = 0;
   int pairCalls = 0;
+  int deleteCalls = 0;
   String? lastPairingToken;
   String? lastDeviceId;
   String? lastDeviceName;
+  String? lastSessionToken;
 
   @override
   Future<PcInfo> fetchInfo({required String host, required int port}) async {
@@ -69,6 +75,17 @@ class FakeApi implements NotchiApi {
     if (pairError != null) throw pairError!;
     return result;
   }
+
+  @override
+  Future<void> deleteDevice({
+    required String host,
+    required int port,
+    required String sessionToken,
+  }) async {
+    deleteCalls++;
+    lastSessionToken = sessionToken;
+    if (deleteError != null) throw deleteError!;
+  }
 }
 
 class InMemoryKeyValueStore implements KeyValueStore {
@@ -91,11 +108,92 @@ class InMemoryKeyValueStore implements KeyValueStore {
 ProviderContainer makeContainer({
   required NotchiApi api,
   required KeyValueStore store,
+  WsConnector? wsConnector,
 }) {
   return ProviderContainer(
     overrides: [
       apiClientProvider.overrideWithValue(api),
       keyValueStoreProvider.overrideWithValue(store),
+      if (wsConnector != null)
+        wsConnectorProvider.overrideWithValue(wsConnector),
     ],
   );
+}
+
+class FakeWsConnector implements WsConnector {
+  FakeWsConnector({this.connectHandler, this.connection});
+
+  final Future<WsConnection> Function(Uri uri, Map<String, String> headers)?
+  connectHandler;
+  FakeWsConnection? connection;
+  final List<Uri> connectCalls = [];
+  final List<Map<String, String>> headersCalls = [];
+
+  @override
+  Future<WsConnection> connect(
+    Uri uri, {
+    Map<String, String> headers = const {},
+  }) async {
+    connectCalls.add(uri);
+    headersCalls.add(headers);
+    if (connectHandler != null) {
+      return connectHandler!(uri, headers);
+    }
+    final existing = connection;
+    if (existing != null && !existing.isClosed) {
+      return existing;
+    }
+    final conn = FakeWsConnection();
+    connection = conn;
+    return conn;
+  }
+}
+
+class FakeWsConnection implements WsConnection {
+  FakeWsConnection({Completer<void>? readyCompleter})
+    : _readyCompleter = readyCompleter ?? (Completer<void>()..complete());
+
+  final StreamController<dynamic> incoming = StreamController<dynamic>.broadcast();
+  final List<String> sentMessages = [];
+  final Completer<void> _readyCompleter;
+
+  int? _closeCode;
+  String? _closeReason;
+  bool isClosed = false;
+
+  @override
+  Stream<dynamic> get messages => incoming.stream;
+
+  @override
+  Future<void> get ready => _readyCompleter.future;
+
+  @override
+  int? get closeCode => _closeCode;
+
+  @override
+  String? get closeReason => _closeReason;
+
+  @override
+  void send(String data) {
+    sentMessages.add(data);
+  }
+
+  @override
+  Future<void> close([int? code, String? reason]) async {
+    _closeCode = code;
+    _closeReason = reason;
+    isClosed = true;
+    if (!incoming.isClosed) {
+      await incoming.close();
+    }
+  }
+
+  void simulateRemoteClose([int? code, String? reason]) {
+    _closeCode = code;
+    _closeReason = reason;
+    isClosed = true;
+    if (!incoming.isClosed) {
+      incoming.close();
+    }
+  }
 }
