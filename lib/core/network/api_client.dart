@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../errors/api_error.dart';
@@ -20,6 +22,13 @@ abstract interface class NotchiApi {
     required String host,
     required int port,
     required String sessionToken,
+  });
+
+  Future<Uint8List?> fetchMediaArt({
+    required String host,
+    required int port,
+    required String sessionToken,
+    int? artVersion,
   });
 }
 
@@ -96,12 +105,46 @@ class ApiClient implements NotchiApi {
     }
   }
 
+  @override
+  Future<Uint8List?> fetchMediaArt({
+    required String host,
+    required int port,
+    required String sessionToken,
+    int? artVersion,
+  }) async {
+    try {
+      final query = artVersion != null ? {'t': '$artVersion'} : null;
+      final response = await _dio.getUri<List<int>>(
+        _uri(host, port, '/media/art', query),
+        options: Options(
+          headers: _authorization(sessionToken),
+          responseType: ResponseType.bytes,
+        ),
+      );
+
+      final data = response.data;
+      if (data == null || data.isEmpty) return null;
+      return Uint8List.fromList(data);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return null;
+      }
+      throw _mapDioError(error);
+    }
+  }
+
   Map<String, String> _authorization(String sessionToken) {
     return {'Authorization': 'Bearer $sessionToken'};
   }
 
-  Uri _uri(String host, int port, String path) {
-    return Uri(scheme: 'http', host: host, port: port, path: path);
+  Uri _uri(String host, int port, String path, [Map<String, dynamic>? query]) {
+    return Uri(
+      scheme: 'http',
+      host: host,
+      port: port,
+      path: path,
+      queryParameters: query,
+    );
   }
 
   ApiError _mapDioError(DioException error) {

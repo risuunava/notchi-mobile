@@ -5,6 +5,7 @@ import '../../../core/errors/api_error.dart';
 import '../../../core/l10n/strings.dart';
 import '../../../core/storage/secure_store.dart';
 import '../../connection/ui/connection_indicator.dart';
+import '../../media/ui/media_player_card.dart';
 import '../state/pairing_providers.dart';
 import '../state/session_providers.dart';
 import 'manual_connect_screen.dart';
@@ -156,6 +157,8 @@ class _ConnectedView extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        const MediaPlayerCard(),
         const SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: () => _forget(context, ref),

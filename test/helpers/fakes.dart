@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:notchi_mobile/core/network/api_client.dart';
@@ -33,6 +34,8 @@ class FakeApi implements NotchiApi {
     this.infoError,
     this.pairError,
     this.deleteError,
+    this.artError,
+    this.artBytes,
   });
 
   PcInfo info;
@@ -40,11 +43,15 @@ class FakeApi implements NotchiApi {
   Object? infoError;
   Object? pairError;
   Object? deleteError;
+  Object? artError;
+  Uint8List? artBytes;
   Completer<PairResult>? pairCompleter;
 
   int infoCalls = 0;
   int pairCalls = 0;
   int deleteCalls = 0;
+  int artCalls = 0;
+  int? lastArtVersion;
   String? lastPairingToken;
   String? lastDeviceId;
   String? lastDeviceName;
@@ -85,6 +92,19 @@ class FakeApi implements NotchiApi {
     deleteCalls++;
     lastSessionToken = sessionToken;
     if (deleteError != null) throw deleteError!;
+  }
+
+  @override
+  Future<Uint8List?> fetchMediaArt({
+    required String host,
+    required int port,
+    required String sessionToken,
+    int? artVersion,
+  }) async {
+    artCalls++;
+    lastArtVersion = artVersion;
+    if (artError != null) throw artError!;
+    return artBytes;
   }
 }
 

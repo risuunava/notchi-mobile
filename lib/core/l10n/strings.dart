@@ -201,4 +201,22 @@ class AppStrings {
     'Token tidak valid. Pasangkan ulang.',
     'Invalid token. Pair again.',
   );
+
+  String get mediaTitle => _t('Media', 'Media');
+
+  String get mediaNoMedia =>
+      _t('Tidak ada media yang diputar', 'No media playing');
+
+  String get mediaNoMediaHint => _t(
+    'Buka aplikasi musik atau video di PC.',
+    'Open a music or video app on the PC.',
+  );
+
+  String get mediaPlay => _t('Putar', 'Play');
+
+  String get mediaPause => _t('Jeda', 'Pause');
+
+  String get mediaPrevious => _t('Sebelumnya', 'Previous');
+
+  String get mediaNext => _t('Berikutnya', 'Next');
 }
