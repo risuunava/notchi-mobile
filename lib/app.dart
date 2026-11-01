@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'features/connection/ui/connection_lifecycle.dart';
 import 'features/pairing/ui/home_screen.dart';
+import 'features/shelf/ui/share_intent_handler.dart';
 
 class NotchiMobileApp extends StatelessWidget {
   const NotchiMobileApp({super.key});
@@ -25,7 +26,9 @@ class NotchiMobileApp extends StatelessWidget {
       ),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('en'), Locale('id')],
-      home: const ConnectionLifecycle(child: HomeScreen()),
+      home: const ConnectionLifecycle(
+        child: ShareIntentHandler(child: HomeScreen()),
+      ),
     );
   }
 }
