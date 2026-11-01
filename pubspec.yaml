@@ -43,6 +43,7 @@ dependencies:
   mobile_scanner: ^7.4.3
   uuid: ^4.6.0
   web_socket_channel: ^3.0.3
+  file_picker: ^13.3.1
 
 dev_dependencies:
   flutter_test:

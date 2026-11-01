@@ -102,9 +102,9 @@ class ApiError implements Exception {
       ApiErrorCode.featureDisabled => strings.errorFeatureDisabled,
       ApiErrorCode.network => strings.errorNetwork,
       ApiErrorCode.timeout => strings.errorTimeout,
+      ApiErrorCode.fileTooLarge => strings.errorFileTooLarge,
       ApiErrorCode.badRequest ||
       ApiErrorCode.notFound ||
-      ApiErrorCode.fileTooLarge ||
       ApiErrorCode.unsupportedMediaType ||
       ApiErrorCode.internalError ||
       ApiErrorCode.noMediaSession => strings.errorServer,

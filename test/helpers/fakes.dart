@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:notchi_mobile/core/network/api_client.dart';
 import 'package:notchi_mobile/core/network/ws_connector.dart';
@@ -8,6 +9,8 @@ import 'package:notchi_mobile/core/storage/secure_store.dart';
 import 'package:notchi_mobile/features/connection/state/connection_providers.dart';
 import 'package:notchi_mobile/features/pairing/state/pairing_providers.dart';
 import 'package:notchi_mobile/features/pairing/state/session_providers.dart';
+import 'package:notchi_mobile/features/shelf/model/shelf_item.dart';
+import 'package:notchi_mobile/features/status/model/system_status.dart';
 import 'package:notchi_mobile/models/pair_result.dart';
 import 'package:notchi_mobile/models/pc_info.dart';
 
@@ -36,6 +39,10 @@ class FakeApi implements NotchiApi {
     this.deleteError,
     this.artError,
     this.artBytes,
+    this.shelfResult = const ShelfUploadResult(id: 'item-1', name: 'test.png'),
+    this.shelfError,
+    this.statusResult = const SystemStatus(cpuPercent: 12.0, ramPercent: 45.0),
+    this.statusError,
   });
 
   PcInfo info;
@@ -51,11 +58,19 @@ class FakeApi implements NotchiApi {
   int pairCalls = 0;
   int deleteCalls = 0;
   int artCalls = 0;
+  int shelfCalls = 0;
+  int statusCalls = 0;
   int? lastArtVersion;
   String? lastPairingToken;
   String? lastDeviceId;
   String? lastDeviceName;
   String? lastSessionToken;
+  String? lastShelfText;
+  String? lastShelfFilePath;
+  ShelfUploadResult shelfResult = const ShelfUploadResult(id: 'item-1', name: 'test.png');
+  Object? shelfError;
+  SystemStatus statusResult = const SystemStatus(cpuPercent: 12.0, ramPercent: 45.0);
+  Object? statusError;
 
   @override
   Future<PcInfo> fetchInfo({required String host, required int port}) async {
@@ -105,6 +120,39 @@ class FakeApi implements NotchiApi {
     lastArtVersion = artVersion;
     if (artError != null) throw artError!;
     return artBytes;
+  }
+
+  @override
+  Future<ShelfUploadResult> uploadToShelf({
+    required String host,
+    required int port,
+    required String sessionToken,
+    String? filePath,
+    String? fileName,
+    List<int>? fileBytes,
+    String? text,
+    void Function(int count, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    shelfCalls++;
+    lastSessionToken = sessionToken;
+    lastShelfText = text;
+    lastShelfFilePath = filePath;
+    onProgress?.call(100, 100);
+    if (shelfError != null) throw shelfError!;
+    return shelfResult;
+  }
+
+  @override
+  Future<SystemStatus> fetchStatus({
+    required String host,
+    required int port,
+    required String sessionToken,
+  }) async {
+    statusCalls++;
+    lastSessionToken = sessionToken;
+    if (statusError != null) throw statusError!;
+    return statusResult;
   }
 }
 

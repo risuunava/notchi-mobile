@@ -219,4 +219,44 @@ class AppStrings {
   String get mediaPrevious => _t('Sebelumnya', 'Previous');
 
   String get mediaNext => _t('Berikutnya', 'Next');
+
+  String get errorFileTooLarge => _t(
+    'Ukuran file melebihi batas yang diizinkan di PC.',
+    'File size exceeds the allowed limit on the PC.',
+  );
+
+  String get shelfTitle => _t('Drop Shelf', 'Drop Shelf');
+
+  String get sendToShelf => _t('Kirim ke Drop Shelf', 'Send to Drop Shelf');
+
+  String get sendFile => _t('Kirim File', 'Send File');
+
+  String get sendText => _t('Kirim Catatan/Teks', 'Send Note/Text');
+
+  String get textToShelfHint => _t(
+    'Ketik catatan atau teks untuk dikirim ke PC...',
+    'Type note or text to send to PC...',
+  );
+
+  String get send => _t('Kirim', 'Send');
+
+  String get uploading => _t('Mengunggah...', 'Uploading...');
+
+  String get uploadSuccess => _t('Berhasil dikirim ke PC', 'Sent to PC successfully');
+
+  String get uploadFailed => _t('Gagal mengirim ke PC', 'Failed to send to PC');
+
+  String get statusTitle => _t('Status PC', 'PC Status');
+
+  String get cpuUsage => _t('CPU', 'CPU');
+
+  String get ramUsage => _t('RAM', 'RAM');
+
+  String get diskUsage => _t('Penyimpanan', 'Disk');
+
+  String get battery => _t('Baterai', 'Battery');
+
+  String get charging => _t('Mengisi daya', 'Charging');
+
+  String get notCharging => _t('Tidak mengisi daya', 'Not charging');
 }
