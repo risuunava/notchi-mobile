@@ -1,30 +1,110 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:notchi_mobile/app.dart';
+import 'package:notchi_mobile/core/errors/api_error.dart';
+import 'package:notchi_mobile/core/storage/secure_store.dart';
+import 'package:notchi_mobile/features/pairing/state/pairing_providers.dart';
+import 'package:notchi_mobile/features/pairing/state/session_providers.dart';
+import 'package:notchi_mobile/features/pairing/ui/pairing_progress_screen.dart';
 
-import 'package:notchi_mobile/main.dart';
+import 'helpers/fakes.dart';
+
+Widget _app(Widget child, {required List<Override> overrides}) {
+  return ProviderScope(overrides: overrides, child: child);
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('home asks to pair when no session is stored', (tester) async {
+    final store = InMemoryKeyValueStore();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      _app(
+        const NotchiMobileApp(),
+        overrides: [keyValueStoreProvider.overrideWithValue(store)],
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Not connected'), findsOneWidget);
+    expect(find.text('Scan QR'), findsOneWidget);
+    expect(find.text('Connect manually'), findsOneWidget);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('home shows the stored PC after pairing', (tester) async {
+    final store = InMemoryKeyValueStore();
+    await SessionStore(
+      store,
+      deviceNameResolver: () async => 'Android',
+    ).saveSession(
+      const SavedSession(
+        sessionToken: 'token',
+        pcId: 'pc-1',
+        pcName: 'LAPTOP-TEST',
+        host: '192.168.1.10',
+        port: 8765,
+        apiVersion: 1,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        const NotchiMobileApp(),
+        overrides: [keyValueStoreProvider.overrideWithValue(store)],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connected to LAPTOP-TEST'), findsOneWidget);
+    expect(find.text('192.168.1.10:8765'), findsOneWidget);
+    expect(find.text('Forget device'), findsOneWidget);
+  });
+
+  testWidgets('manual pairing reaches the success state', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const MaterialApp(
+          home: PairingProgressScreen.manual(
+            host: '192.168.1.10',
+            port: '8765',
+            token: 'tok-1',
+          ),
+        ),
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeApi()),
+          keyValueStoreProvider.overrideWithValue(InMemoryKeyValueStore()),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paired successfully'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
+  testWidgets('manual pairing shows a localized server error', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const MaterialApp(
+          home: PairingProgressScreen.manual(
+            host: '192.168.1.10',
+            port: '8765',
+            token: 'tok-1',
+          ),
+        ),
+        overrides: [
+          apiClientProvider.overrideWithValue(
+            FakeApi(pairError: ApiError(ApiErrorCode.pairingDenied)),
+          ),
+          keyValueStoreProvider.overrideWithValue(InMemoryKeyValueStore()),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connection failed'), findsOneWidget);
+    expect(find.text('The request was denied on the PC.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
   });
 }
