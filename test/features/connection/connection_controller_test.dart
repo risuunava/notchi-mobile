@@ -41,10 +41,9 @@ void main() {
         connector.connectCalls.first,
         Uri.parse('ws://192.168.1.50:8765/ws'),
       );
-      expect(
-        connector.headersCalls.first,
-        {'Authorization': 'Bearer token-abc'},
-      );
+      expect(connector.headersCalls.first, {
+        'Authorization': 'Bearer token-abc',
+      });
       expect(
         container.read(connectionControllerProvider),
         isA<ConnectionConnected>(),
@@ -195,7 +194,10 @@ void main() {
 
       final state = container.read(connectionControllerProvider);
       expect(state, isA<ConnectionStopped>());
-      expect((state as ConnectionStopped).reason, ConnectionStopReason.disabled);
+      expect(
+        (state as ConnectionStopped).reason,
+        ConnectionStopReason.disabled,
+      );
 
       container.dispose();
     });

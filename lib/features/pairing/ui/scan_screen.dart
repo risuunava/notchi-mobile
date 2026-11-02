@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/l10n/strings.dart';
@@ -116,7 +117,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           IconButton(
             tooltip: strings.flashlight,
             onPressed: _toggleTorch,
-            icon: Icon(_torchOn ? Icons.flashlight_on : Icons.flashlight_off),
+            icon: Icon(
+              _torchOn ? LucideIcons.flashlight : LucideIcons.flashlightOff,
+            ),
           ),
         ],
       ),
@@ -165,7 +168,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     const SizedBox(height: 12),
                     FilledButton.tonalIcon(
                       onPressed: _openManual,
-                      icon: const Icon(Icons.keyboard),
+                      icon: const Icon(LucideIcons.keyboard, size: 17),
                       label: Text(strings.manualConnect),
                     ),
                   ],
@@ -218,7 +221,7 @@ class _CameraError extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.no_photography, color: Colors.white, size: 48),
+              const Icon(LucideIcons.cameraOff, color: Colors.white, size: 44),
               const SizedBox(height: 16),
               Text(
                 message,

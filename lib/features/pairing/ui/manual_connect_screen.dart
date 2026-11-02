@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/l10n/strings.dart';
 import 'pairing_progress_screen.dart';
@@ -69,7 +70,7 @@ class _ManualConnectScreenState extends ConsumerState<ManualConnectScreen> {
                 decoration: InputDecoration(
                   labelText: strings.hostLabel,
                   hintText: strings.hostHint,
-                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(LucideIcons.monitor, size: 18),
                 ),
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.next,
@@ -91,7 +92,7 @@ class _ManualConnectScreenState extends ConsumerState<ManualConnectScreen> {
                 controller: _portController,
                 decoration: InputDecoration(
                   labelText: strings.portLabel,
-                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(LucideIcons.network, size: 18),
                 ),
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.next,
@@ -108,7 +109,7 @@ class _ManualConnectScreenState extends ConsumerState<ManualConnectScreen> {
                 controller: _tokenController,
                 decoration: InputDecoration(
                   labelText: strings.tokenLabel,
-                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(LucideIcons.key, size: 18),
                 ),
                 autocorrect: false,
                 enableSuggestions: false,

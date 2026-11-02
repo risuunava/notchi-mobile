@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/l10n/strings.dart';
 import '../state/pairing_providers.dart';
@@ -99,7 +100,7 @@ class _PairingProgressScreenState extends ConsumerState<PairingProgressScreen> {
         onAction: _cancel,
       ),
       PairingSuccess(session: final session) => _ResultView(
-        icon: Icons.check_circle,
+        icon: LucideIcons.checkCircle,
         color: Theme.of(context).colorScheme.primary,
         title: strings.successTitle,
         body: strings.successBody,
@@ -108,7 +109,7 @@ class _PairingProgressScreenState extends ConsumerState<PairingProgressScreen> {
         detail: '${session.pcName} · ${session.host}:${session.port}',
       ),
       PairingFailure(error: final error) => _ResultView(
-        icon: Icons.error,
+        icon: LucideIcons.alertCircle,
         color: Theme.of(context).colorScheme.error,
         title: strings.errorTitle,
         body: error.message(strings),

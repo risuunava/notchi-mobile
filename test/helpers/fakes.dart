@@ -67,9 +67,15 @@ class FakeApi implements NotchiApi {
   String? lastSessionToken;
   String? lastShelfText;
   String? lastShelfFilePath;
-  ShelfUploadResult shelfResult = const ShelfUploadResult(id: 'item-1', name: 'test.png');
+  ShelfUploadResult shelfResult = const ShelfUploadResult(
+    id: 'item-1',
+    name: 'test.png',
+  );
   Object? shelfError;
-  SystemStatus statusResult = const SystemStatus(cpuPercent: 12.0, ramPercent: 45.0);
+  SystemStatus statusResult = const SystemStatus(
+    cpuPercent: 12.0,
+    ramPercent: 45.0,
+  );
   Object? statusError;
 
   @override
@@ -221,7 +227,8 @@ class FakeWsConnection implements WsConnection {
   FakeWsConnection({Completer<void>? readyCompleter})
     : _readyCompleter = readyCompleter ?? (Completer<void>()..complete());
 
-  final StreamController<dynamic> incoming = StreamController<dynamic>.broadcast();
+  final StreamController<dynamic> incoming =
+      StreamController<dynamic>.broadcast();
   final List<String> sentMessages = [];
   final Completer<void> _readyCompleter;
 

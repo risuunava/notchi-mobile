@@ -21,7 +21,10 @@ class ConnectionIndicator extends ConsumerWidget {
     final (color, label) = switch (status) {
       ConnectionConnected() => (_online, strings.connectionOnline),
       ConnectionConnecting() => (_connecting, strings.connectionConnecting),
-      ConnectionReconnecting() => (_reconnecting, strings.connectionReconnecting),
+      ConnectionReconnecting() => (
+        _reconnecting,
+        strings.connectionReconnecting,
+      ),
       ConnectionStopped(:final reason) => (
         theme.colorScheme.error,
         switch (reason) {
@@ -30,7 +33,10 @@ class ConnectionIndicator extends ConsumerWidget {
           ConnectionStopReason.unauthorized => strings.connectionUnauthorized,
         },
       ),
-      ConnectionIdle() => (theme.colorScheme.outline, strings.connectionOffline),
+      ConnectionIdle() => (
+        theme.colorScheme.outline,
+        strings.connectionOffline,
+      ),
     };
 
     return Row(

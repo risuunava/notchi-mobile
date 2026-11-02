@@ -31,6 +31,8 @@ void main() {
     expect(find.text('Not connected'), findsOneWidget);
     expect(find.text('Scan QR'), findsOneWidget);
     expect(find.text('Connect manually'), findsOneWidget);
+    expect(find.text('Setting'), findsNothing);
+    expect(find.byTooltip('Report connection issue'), findsOneWidget);
   });
 
   testWidgets('home shows the stored PC after pairing', (tester) async {
@@ -62,7 +64,9 @@ void main() {
 
     expect(find.text('Connected to LAPTOP-TEST'), findsOneWidget);
     expect(find.text('192.168.1.10:8765'), findsOneWidget);
-    expect(find.text('Forget device'), findsOneWidget);
+    expect(find.text('PC Information'), findsOneWidget);
+    expect(find.text('Setting'), findsOneWidget);
+    expect(find.byTooltip('Report connection issue'), findsNothing);
   });
 
   testWidgets('forget revokes the device and clears the local session', (
@@ -93,9 +97,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Forget device'));
+    await tester.tap(find.text('Setting'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Forget device'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Disconnect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Disconnect'));
     await tester.pumpAndSettle();
 
     expect(api.deleteCalls, 1);
@@ -132,16 +138,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Forget device'));
+    await tester.tap(find.text('Setting'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Forget device'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Disconnect'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Disconnect'));
     await tester.pumpAndSettle();
 
     expect(api.deleteCalls, 1);
     expect(await SessionStore(store).readSession(), isNull);
     expect(
       find.text(
-        'Removed from this phone, but the PC was unreachable. '
+        'Disconnected from this phone, but the PC was unreachable. '
         'Also revoke this device in Notchi PC settings.',
       ),
       findsOneWidget,
