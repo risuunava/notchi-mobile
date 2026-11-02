@@ -1,8 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/l10n/strings.dart';
+import '../../../core/theme/app_theme.dart';
 import '../state/shelf_controller.dart';
 
 class DropShelfCard extends ConsumerStatefulWidget {
@@ -27,17 +29,14 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
       final file = files.first;
       final localPath = file.path;
       if (localPath != null) {
-        await ref.read(shelfControllerProvider.notifier).sendFile(
-          filePath: localPath,
-          fileName: file.name,
-        );
+        await ref
+            .read(shelfControllerProvider.notifier)
+            .sendFile(filePath: localPath, fileName: file.name);
       } else {
         final bytes = await file.xFile.readAsBytes();
-        await ref.read(shelfControllerProvider.notifier).sendFile(
-          filePath: '',
-          fileName: file.name,
-          fileBytes: bytes,
-        );
+        await ref
+            .read(shelfControllerProvider.notifier)
+            .sendFile(filePath: '', fileName: file.name, fileBytes: bytes);
       }
     }
   }
@@ -82,119 +81,179 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final theme = Theme.of(context);
     final shelfState = ref.watch(shelfControllerProvider);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.drive_file_move_outlined,
-                  size: 20,
-                  color: theme.colorScheme.primary,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.soft,
+                  borderRadius: BorderRadius.circular(17),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  strings.shelfTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (shelfState.status == ShelfUploadStatus.uploading) ...[
-              Text(
-                strings.uploading,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
+                child: const Icon(
+                  LucideIcons.uploadCloud,
+                  size: 23,
+                  color: AppColors.ink,
                 ),
               ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: shelfState.progress > 0 ? shelfState.progress : null,
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () =>
-                      ref.read(shelfControllerProvider.notifier).cancel(),
-                  child: Text(strings.cancel),
-                ),
-              ),
-            ] else ...[
-              if (shelfState.status == ShelfUploadStatus.success) ...[
-                Row(
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      color: Colors.green,
-                      size: 20,
+                    Text(
+                      strings.shelfTitle,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${strings.uploadSuccess}: ${shelfState.lastResult?.name ?? ""}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    const SizedBox(height: 3),
+                    Text(
+                      strings.dropShelfHint,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        height: 1.35,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-              ] else if (shelfState.status == ShelfUploadStatus.error) ...[
-                Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: theme.colorScheme.error,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        shelfState.error?.message(strings) ??
-                            strings.uploadFailed,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickAndSendFile,
-                      icon: const Icon(Icons.upload_file),
-                      label: Text(strings.sendFile),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showSendTextDialog(context),
-                      icon: const Icon(Icons.note_alt_outlined),
-                      label: Text(strings.sendText),
-                    ),
-                  ),
-                ],
               ),
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 18),
+          _buildActions(context, strings, shelfState),
+        ],
       ),
+    );
+  }
+
+  Widget _buildActions(
+    BuildContext context,
+    AppStrings strings,
+    ShelfUploadState shelfState,
+  ) {
+    if (shelfState.status == ShelfUploadStatus.uploading) {
+      final progress = shelfState.progress;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(LucideIcons.upload, size: 17, color: AppColors.ink),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  strings.uploading,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                progress > 0 ? '${(progress * 100).round()}%' : '...',
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress > 0 ? progress : null,
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () =>
+                  ref.read(shelfControllerProvider.notifier).cancel(),
+              child: Text(strings.cancel),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (shelfState.status == ShelfUploadStatus.success) ...[
+          Row(
+            children: [
+              const Icon(
+                LucideIcons.checkCircle,
+                size: 17,
+                color: AppColors.success,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${strings.uploadSuccess}: ${shelfState.lastResult?.name ?? ""}',
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+        ] else if (shelfState.status == ShelfUploadStatus.error) ...[
+          Row(
+            children: [
+              const Icon(
+                LucideIcons.alertCircle,
+                size: 17,
+                color: AppColors.danger,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  shelfState.error?.message(strings) ?? strings.uploadFailed,
+                  style: const TextStyle(color: AppColors.danger, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+        ],
+        FilledButton.icon(
+          onPressed: _pickAndSendFile,
+          icon: const Icon(LucideIcons.uploadCloud, size: 17),
+          label: Text(strings.sendFile),
+        ),
+        const SizedBox(height: 9),
+        OutlinedButton.icon(
+          onPressed: () => _showSendTextDialog(context),
+          icon: const Icon(LucideIcons.fileText, size: 17),
+          label: Text(strings.sendText),
+        ),
+      ],
     );
   }
 }

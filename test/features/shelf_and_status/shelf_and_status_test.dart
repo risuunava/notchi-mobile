@@ -109,7 +109,11 @@ void main() {
 
     test('sends file and updates progress', () async {
       final api = FakeApi(
-        shelfResult: const ShelfUploadResult(id: 'img-1', name: 'photo.jpg', size: 1024),
+        shelfResult: const ShelfUploadResult(
+          id: 'img-1',
+          name: 'photo.jpg',
+          size: 1024,
+        ),
       );
       final store = InMemoryKeyValueStore();
       await SessionStore(store).saveSession(
@@ -127,10 +131,7 @@ void main() {
       await container.read(savedSessionProvider.future);
 
       final ctrl = container.read(shelfControllerProvider.notifier);
-      await ctrl.sendFile(
-        filePath: '/tmp/photo.jpg',
-        fileName: 'photo.jpg',
-      );
+      await ctrl.sendFile(filePath: '/tmp/photo.jpg', fileName: 'photo.jpg');
 
       final state = container.read(shelfControllerProvider);
       expect(state.status, ShelfUploadStatus.success);

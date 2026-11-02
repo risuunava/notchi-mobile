@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,11 +35,13 @@ class _ShareIntentHandlerState extends ConsumerState<ShareIntentHandler> {
     _intentDataStreamSubscription = ReceiveSharingIntent.instance
         .getMediaStream()
         .listen((List<SharedMediaFile> files) {
-      _handleSharedFiles(files);
-    }, onError: (_) {});
+          _handleSharedFiles(files);
+        }, onError: (_) {});
 
     // For sharing images coming from outside the app while the app is closed
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> files) {
+    ReceiveSharingIntent.instance.getInitialMedia().then((
+      List<SharedMediaFile> files,
+    ) {
       _handleSharedFiles(files);
       ReceiveSharingIntent.instance.reset();
     });
@@ -55,9 +58,9 @@ class _ShareIntentHandlerState extends ConsumerState<ShareIntentHandler> {
         }
       } else {
         if (shared.path.isNotEmpty) {
-          ref.read(shelfControllerProvider.notifier).sendFile(
-            filePath: shared.path,
-          );
+          ref
+              .read(shelfControllerProvider.notifier)
+              .sendFile(filePath: shared.path);
         }
       }
     }

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,29 +17,36 @@ class ShelfUploadState {
     this.progress = 0.0,
     this.lastResult,
     this.error,
+    this.history = const [],
   });
 
   final ShelfUploadStatus status;
   final double progress;
   final ShelfUploadResult? lastResult;
   final ApiError? error;
+  final List<ShelfHistoryEntry> history;
 
   ShelfUploadState copyWith({
     ShelfUploadStatus? status,
     double? progress,
     ShelfUploadResult? lastResult,
     ApiError? error,
+    List<ShelfHistoryEntry>? history,
   }) {
     return ShelfUploadState(
       status: status ?? this.status,
       progress: progress ?? this.progress,
       lastResult: lastResult ?? this.lastResult,
       error: error,
+      history: history ?? this.history,
     );
   }
 }
 
 class ShelfController extends Notifier<ShelfUploadState> {
+  static const _historyKey = 'notchi.shelf_history';
+  static const _maxHistory = 50;
+
   CancelToken? _cancelToken;
 
   @override
@@ -44,7 +54,76 @@ class ShelfController extends Notifier<ShelfUploadState> {
     ref.onDispose(() {
       _cancelToken?.cancel();
     });
+    unawaited(_restoreHistory());
     return const ShelfUploadState();
+  }
+
+  Future<void> _restoreHistory() async {
+    try {
+      final raw = await ref.read(keyValueStoreProvider).read(_historyKey);
+      if (raw == null || raw.isEmpty) return;
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+
+      final loaded = decoded
+          .whereType<Map>()
+          .map(
+            (item) => ShelfHistoryEntry.fromJson(
+              item.map((key, value) => MapEntry(key.toString(), value)),
+            ),
+          )
+          .toList();
+
+      final merged = <ShelfHistoryEntry>[];
+      final seen = <String>{};
+      for (final entry in [...state.history, ...loaded]) {
+        if (seen.add(entry.id)) merged.add(entry);
+      }
+      merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      state = state.copyWith(history: merged.take(_maxHistory).toList());
+    } catch (_) {
+      // History is a convenience; ignore unreadable values.
+    }
+  }
+
+  Future<void> _persistHistory(List<ShelfHistoryEntry> history) async {
+    try {
+      await ref
+          .read(keyValueStoreProvider)
+          .write(
+            _historyKey,
+            jsonEncode(history.map((entry) => entry.toJson()).toList()),
+          );
+    } catch (_) {
+      // Keep the in-memory history when persistence fails.
+    }
+  }
+
+  Future<void> _recordSuccess(
+    ShelfUploadResult result, {
+    required bool isText,
+  }) async {
+    final entry = ShelfHistoryEntry.fromUpload(result, isText: isText);
+    final history = [entry, ...state.history].take(_maxHistory).toList();
+
+    state = state.copyWith(
+      status: ShelfUploadStatus.success,
+      progress: 1.0,
+      lastResult: result,
+      history: history,
+    );
+
+    await _persistHistory(history);
+  }
+
+  Future<void> clearHistory() async {
+    state = state.copyWith(history: const []);
+    try {
+      await ref.read(keyValueStoreProvider).delete(_historyKey);
+    } catch (_) {
+      // Nothing else to do if the stored history cannot be removed.
+    }
   }
 
   Future<void> sendText(String text) async {
@@ -72,11 +151,7 @@ class ShelfController extends Notifier<ShelfUploadState> {
         cancelToken: _cancelToken,
       );
 
-      state = state.copyWith(
-        status: ShelfUploadStatus.success,
-        progress: 1.0,
-        lastResult: result,
-      );
+      await _recordSuccess(result, isText: true);
     } on ApiError catch (e) {
       state = state.copyWith(status: ShelfUploadStatus.error, error: e);
     } catch (e) {
@@ -123,11 +198,7 @@ class ShelfController extends Notifier<ShelfUploadState> {
         },
       );
 
-      state = state.copyWith(
-        status: ShelfUploadStatus.success,
-        progress: 1.0,
-        lastResult: result,
-      );
+      await _recordSuccess(result, isText: false);
     } on ApiError catch (e) {
       state = state.copyWith(status: ShelfUploadStatus.error, error: e);
     } catch (e) {
@@ -140,11 +211,11 @@ class ShelfController extends Notifier<ShelfUploadState> {
 
   void cancel() {
     _cancelToken?.cancel();
-    state = const ShelfUploadState();
+    state = ShelfUploadState(history: state.history);
   }
 
   void reset() {
-    state = const ShelfUploadState();
+    state = ShelfUploadState(history: state.history);
   }
 }
 

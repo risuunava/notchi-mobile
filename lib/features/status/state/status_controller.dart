@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/protocol.dart';
@@ -18,7 +19,10 @@ class SystemStatusController extends Notifier<SystemStatus?> {
 
     _messageSub = ref.watch(connectionMessagesProvider).listen(_onWsMessage);
 
-    ref.listen<ConnectionStatus>(connectionControllerProvider, (previous, next) {
+    ref.listen<ConnectionStatus>(connectionControllerProvider, (
+      previous,
+      next,
+    ) {
       if (next is! ConnectionConnected) {
         state = null;
       } else if (_activeSubscribers > 0) {

@@ -54,9 +54,6 @@ class BatteryInfo {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'percent': percent,
-      'charging': charging,
-    };
+    return {'percent': percent, 'charging': charging};
   }
 }
