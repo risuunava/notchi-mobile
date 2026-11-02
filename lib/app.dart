@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/l10n/locale_controller.dart';
+import 'core/theme/app_theme.dart';
 import 'features/connection/ui/connection_lifecycle.dart';
-import 'features/pairing/ui/home_screen.dart';
+import 'features/shell/ui/app_shell.dart';
 import 'features/shelf/ui/share_intent_handler.dart';
 
-class NotchiMobileApp extends StatelessWidget {
+class NotchiMobileApp extends ConsumerWidget {
   const NotchiMobileApp({super.key});
 
-  static const _seedColor = Color(0xFF7C4DFF);
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeControllerProvider);
+
     return MaterialApp(
       title: 'Notchi',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: _seedColor),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _seedColor,
-          brightness: Brightness.dark,
-        ),
-      ),
+      locale: locale,
+      theme: buildAppTheme(),
+      themeMode: ThemeMode.light,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('en'), Locale('id')],
       home: const ConnectionLifecycle(
-        child: ShareIntentHandler(child: HomeScreen()),
+        child: ShareIntentHandler(child: AppShell()),
       ),
     );
   }

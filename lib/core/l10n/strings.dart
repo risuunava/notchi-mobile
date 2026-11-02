@@ -197,10 +197,8 @@ class AppStrings {
     'Notchi Mobile is disabled on the PC.',
   );
 
-  String get connectionUnauthorized => _t(
-    'Token tidak valid. Pasangkan ulang.',
-    'Invalid token. Pair again.',
-  );
+  String get connectionUnauthorized =>
+      _t('Token tidak valid. Pasangkan ulang.', 'Invalid token. Pair again.');
 
   String get mediaTitle => _t('Media', 'Media');
 
@@ -242,7 +240,8 @@ class AppStrings {
 
   String get uploading => _t('Mengunggah...', 'Uploading...');
 
-  String get uploadSuccess => _t('Berhasil dikirim ke PC', 'Sent to PC successfully');
+  String get uploadSuccess =>
+      _t('Berhasil dikirim ke PC', 'Sent to PC successfully');
 
   String get uploadFailed => _t('Gagal mengirim ke PC', 'Failed to send to PC');
 
@@ -259,4 +258,218 @@ class AppStrings {
   String get charging => _t('Mengisi daya', 'Charging');
 
   String get notCharging => _t('Tidak mengisi daya', 'Not charging');
+
+  String get navHome => _t('Beranda', 'Home');
+
+  String get navFolder => _t('Folder', 'Folder');
+
+  String get navNote => _t('Catatan', 'Note');
+
+  String get navSettings => _t('Pengaturan', 'Setting');
+
+  List<String> get _weekdays => _isIndonesian
+      ? const ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+      : const [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ];
+
+  List<String> get _monthsShort => _isIndonesian
+      ? const [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mei',
+          'Jun',
+          'Jul',
+          'Agu',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Des',
+        ]
+      : const [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+
+  String dateShortLabel(DateTime date) {
+    final weekday = _weekdays[date.weekday - 1];
+    final month = _monthsShort[date.month - 1];
+    return '$weekday, ${date.day} $month';
+  }
+
+  String timeLabel(DateTime date) {
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String get servicesTitle => _t('Layanan', 'Services');
+
+  String get serviceIssue => _t('Laporkan Masalah', 'Report Issue');
+
+  String get reportConnectionIssue =>
+      _t('Laporkan masalah koneksi', 'Report connection issue');
+
+  String get serviceSource => _t('Kode Sumber', 'Source Code');
+
+  String get serviceWindows => _t('Notchi Windows', 'Notchi Windows');
+
+  String get serviceMobile => _t('Notchi Mobile', 'Notchi Mobile');
+
+  String get linkOpenFailed => _t(
+    'Tautan tidak bisa dibuka di perangkat ini.',
+    'The link could not be opened on this device.',
+  );
+
+  String get pcInfoTitle => _t('Informasi PC', 'PC Information');
+
+  String get pcNameLabel => _t('Nama PC', 'PC name');
+
+  String get ipAddressLabel => _t('Alamat IP', 'IP address');
+
+  String get portLabelShort => _t('Port', 'Port');
+
+  String get apiVersionLabel => _t('Versi API', 'API version');
+
+  String get statusLabel => _t('Status', 'Status');
+
+  String get folderSubtitle => _t(
+    'Kirim file dari HP ke Drop Shelf PC.',
+    'Send files from your phone to the PC Drop Shelf.',
+  );
+
+  String get dropShelfHint => _t(
+    'Pilih file atau kirim catatan, lalu lihat riwayatnya di bawah.',
+    'Pick a file or send a note, then see its history below.',
+  );
+
+  String get droppedFilesTitle =>
+      _t('File yang sudah dikirim', 'Dropped files');
+
+  String get noDroppedFiles => _t('Belum ada file', 'No files yet');
+
+  String get noDroppedFilesHint => _t(
+    'File yang kamu kirim ke PC akan muncul di sini.',
+    'Files you send to the PC will appear here.',
+  );
+
+  String get clearHistory => _t('Hapus riwayat', 'Clear history');
+
+  String get historyCleared => _t('Riwayat dihapus', 'History cleared');
+
+  String get notesTitle => _t('Catatan', 'Notes');
+
+  String get notesSubtitle => _t(
+    'Catatan cepat yang tersimpan di HP ini.',
+    'Quick notes stored on this phone.',
+  );
+
+  String get newNote => _t('Catatan baru', 'New note');
+
+  String get noteTitleHint => _t('Judul catatan', 'Note title');
+
+  String get noteBodyHint => _t('Tulis sesuatu...', 'Write something...');
+
+  String get noteEmpty => _t('Belum ada catatan', 'No notes yet');
+
+  String get noteEmptyHint => _t(
+    'Tekan tombol catatan baru untuk mulai menulis.',
+    'Tap the new note button to start writing.',
+  );
+
+  String get saveNote => _t('Simpan', 'Save');
+
+  String get deleteNoteTitle => _t('Hapus catatan?', 'Delete note?');
+
+  String get deleteNoteBody => _t(
+    'Catatan ini akan dihapus dari HP.',
+    'This note will be removed from the phone.',
+  );
+
+  String get delete => _t('Hapus', 'Delete');
+
+  String get edit => _t('Edit', 'Edit');
+
+  String get sendToPc => _t('Kirim ke PC', 'Send to PC');
+
+  String get noteSentToPc =>
+      _t('Catatan terkirim ke PC', 'Note sent to the PC');
+
+  String get noteSendFailed => _t(
+    'Catatan gagal dikirim. Periksa koneksi ke PC.',
+    'The note could not be sent. Check the connection to the PC.',
+  );
+
+  String get settingsTitle => _t('Pengaturan', 'Settings');
+
+  String get settingsSubtitle => _t(
+    'Atur koneksi, bahasa, dan perangkat.',
+    'Manage connection, language, and device.',
+  );
+
+  String get connectionSection => _t('Koneksi', 'Connection');
+
+  String get languageSection => _t('Bahasa', 'Language');
+
+  String get languageEnglish => 'English';
+
+  String get languageIndonesian => 'Bahasa Indonesia';
+
+  String get disconnectDevice => _t('Putuskan koneksi', 'Disconnect');
+
+  String get disconnectTitle =>
+      _t('Putuskan koneksi ke PC?', 'Disconnect from the PC?');
+
+  String get disconnectBody => _t(
+    'Perangkat ini akan dicabut dari Notchi PC. Kamu perlu memindai QR lagi untuk terhubung.',
+    'This device will be revoked from Notchi PC. You will need to scan the QR code again to connect.',
+  );
+
+  String get disconnectFailed => _t(
+    'Koneksi diputus di HP, tetapi PC tidak terjangkau. Cabut juga perangkat ini di Settings Notchi PC.',
+    'Disconnected from this phone, but the PC was unreachable. Also revoke this device in Notchi PC settings.',
+  );
+
+  String get connectFirstTitle => _t('Hubungkan PC dulu', 'Connect a PC first');
+
+  String get connectFirstBody => _t(
+    'Pindai QR di Notchi PC supaya fitur ini bisa dipakai.',
+    'Scan the QR code in Notchi PC to use this feature.',
+  );
+
+  String get aboutSection => _t('Tentang', 'About');
+
+  String get appVersionLabel => _t('Versi aplikasi', 'App version');
+
+  String get shelfUploadingLabel => _t('Mengunggah', 'Uploading');
+
+  String dropShelfFiles(int count) => _t(
+    '$count file di Drop Shelf',
+    '$count ${count == 1 ? 'file' : 'files'} in Drop Shelf',
+  );
+
+  String get waitingPcStatus =>
+      _t('Menunggu data status PC...', 'Waiting for PC status...');
+
+  String get nowPlaying => _t('Sedang diputar', 'Now playing');
+
+  String get unknownTrack => _t('Tidak ada media', 'No media');
 }
