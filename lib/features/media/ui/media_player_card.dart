@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/l10n/strings.dart';
+import '../../../core/theme/app_theme.dart';
 import '../state/media_controller.dart';
 
 class MediaPlayerCard extends ConsumerStatefulWidget {
@@ -27,229 +30,342 @@ class _MediaPlayerCardState extends ConsumerState<MediaPlayerCard> {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    final theme = Theme.of(context);
     final media = ref.watch(mediaControllerProvider);
+    final livePosition = ref.watch(mediaPositionProvider);
     final artBytes = ref.watch(mediaArtProvider);
 
     if (media == null || !media.available) {
-      return Card(
-        elevation: 0,
-        color: theme.colorScheme.surfaceContainerHighest.withAlpha(128),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          child: Row(
+      return const _EmptyMediaCard();
+    }
+
+    final duration = media.durationSeconds;
+    final currentPos = _draggingPosition ?? livePosition;
+    final progress = duration > 0
+        ? (currentPos / duration).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 30,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.music_off_outlined,
-                  color: theme.colorScheme.onSurfaceVariant,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: ColoredBox(
+                    color: AppColors.soft,
+                    child: artBytes != null
+                        ? Image.memory(
+                            artBytes,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const _ArtPlaceholder(),
+                          )
+                        : const _ArtPlaceholder(),
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      strings.mediaNoMedia,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      media.title.isNotEmpty ? media.title : '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
-                      strings.mediaNoMediaHint,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      media.artist.isNotEmpty ? media.artist : '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12.5,
                       ),
                     ),
                   ],
                 ),
+              ),
+              if (_brandFor(media.sourceApp) != null) ...[
+                const SizedBox(width: 12),
+                _SourceAppIcon(sourceApp: media.sourceApp),
+              ],
+            ],
+          ),
+          if (media.canSeek && duration > 0) ...[
+            const SizedBox(height: 14),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+              ),
+              child: Slider(
+                value: progress,
+                onChanged: (value) {
+                  setState(() {
+                    _draggingPosition = value * duration;
+                  });
+                },
+                onChangeEnd: (value) {
+                  final target = value * duration;
+                  ref.read(mediaControllerProvider.notifier).seek(target);
+                  setState(() {
+                    _draggingPosition = null;
+                  });
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatTime(currentPos),
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    _formatTime(duration),
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _ControlIcon(
+                icon: LucideIcons.skipBack,
+                tooltip: strings.mediaPrevious,
+                iconSize: 26,
+                padding: const EdgeInsets.all(10),
+                onPressed: () =>
+                    ref.read(mediaControllerProvider.notifier).previous(),
+              ),
+              const SizedBox(width: 24),
+              _ControlIcon(
+                icon: media.playing ? LucideIcons.pause : LucideIcons.play,
+                tooltip: media.playing ? strings.mediaPause : strings.mediaPlay,
+                iconSize: 32,
+                padding: const EdgeInsets.all(10),
+                onPressed: () =>
+                    ref.read(mediaControllerProvider.notifier).toggle(),
+              ),
+              const SizedBox(width: 24),
+              _ControlIcon(
+                icon: LucideIcons.skipForward,
+                tooltip: strings.mediaNext,
+                iconSize: 26,
+                padding: const EdgeInsets.all(10),
+                onPressed: () =>
+                    ref.read(mediaControllerProvider.notifier).next(),
               ),
             ],
           ),
-        ),
-      );
-    }
+        ],
+      ),
+    );
+  }
+}
 
-    final duration = media.durationSeconds;
-    final currentPos = _draggingPosition ?? media.positionSeconds;
-    final progress = duration > 0 ? (currentPos / duration).clamp(0.0, 1.0) : 0.0;
+class _ArtPlaceholder extends StatelessWidget {
+  const _ArtPlaceholder();
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    color: theme.colorScheme.primaryContainer,
-                    child: artBytes != null
-                        ? Image.memory(
-                            artBytes,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _artPlaceholder(theme),
-                          )
-                        : _artPlaceholder(theme),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (media.sourceApp.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          margin: const EdgeInsets.only(bottom: 4),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            media.sourceApp,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      Text(
-                        media.title.isNotEmpty ? media.title : '—',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        media.artist.isNotEmpty ? media.artist : '—',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (media.canSeek && duration > 0) ...[
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                ),
-                child: Slider(
-                  value: progress,
-                  onChanged: (value) {
-                    setState(() {
-                      _draggingPosition = value * duration;
-                    });
-                  },
-                  onChangeEnd: (value) {
-                    final target = value * duration;
-                    ref.read(mediaControllerProvider.notifier).seek(target);
-                    setState(() {
-                      _draggingPosition = null;
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatTime(currentPos),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      _formatTime(duration),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  tooltip: strings.mediaPrevious,
-                  iconSize: 32,
-                  onPressed: () {
-                    ref.read(mediaControllerProvider.notifier).previous();
-                  },
-                  icon: const Icon(Icons.skip_previous_rounded),
-                ),
-                const SizedBox(width: 16),
-                IconButton.filled(
-                  tooltip: media.playing ? strings.mediaPause : strings.mediaPlay,
-                  iconSize: 40,
-                  onPressed: () {
-                    ref.read(mediaControllerProvider.notifier).toggle();
-                  },
-                  icon: Icon(
-                    media.playing
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  tooltip: strings.mediaNext,
-                  iconSize: 32,
-                  onPressed: () {
-                    ref.read(mediaControllerProvider.notifier).next();
-                  },
-                  icon: const Icon(Icons.skip_next_rounded),
-                ),
-              ],
-            ),
-          ],
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Icon(LucideIcons.music, size: 24, color: AppColors.muted),
+    );
+  }
+}
+
+class _SourceBrand {
+  const _SourceBrand({
+    required this.icon,
+    required this.background,
+    required this.foreground,
+  });
+
+  final FaIconData icon;
+  final Color background;
+  final Color foreground;
+}
+
+_SourceBrand? _brandFor(String sourceApp) {
+  final app = sourceApp.toLowerCase();
+
+  if (app.contains('spotify')) {
+    return const _SourceBrand(
+      icon: FontAwesomeIcons.spotify,
+      background: Color(0xFF1DB954),
+      foreground: Colors.white,
+    );
+  }
+
+  if (app.contains('chrome')) {
+    return const _SourceBrand(
+      icon: FontAwesomeIcons.chrome,
+      background: Color(0xFFEA4335),
+      foreground: Colors.white,
+    );
+  }
+
+  return null;
+}
+
+class _SourceAppIcon extends StatelessWidget {
+  const _SourceAppIcon({required this.sourceApp});
+
+  final String sourceApp;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = _brandFor(sourceApp);
+    if (brand == null) return const SizedBox.shrink();
+
+    return Semantics(
+      label: sourceApp,
+      child: Tooltip(
+        message: sourceApp,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: brand.background,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: FaIcon(brand.icon, size: 20, color: brand.foreground),
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _artPlaceholder(ThemeData theme) {
-    return Center(
-      child: Icon(
-        Icons.music_note_rounded,
-        size: 32,
-        color: theme.colorScheme.onPrimaryContainer,
+class _ControlIcon extends StatelessWidget {
+  const _ControlIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.iconSize = 20,
+    this.padding = const EdgeInsets.all(8),
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final double iconSize;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      iconSize: iconSize,
+      color: AppColors.ink,
+      padding: padding,
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      icon: Icon(icon),
+    );
+  }
+}
+
+class _EmptyMediaCard extends StatelessWidget {
+  const _EmptyMediaCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 30,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.soft,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              LucideIcons.music,
+              size: 23,
+              color: AppColors.muted,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.mediaNoMedia,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  strings.mediaNoMediaHint,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

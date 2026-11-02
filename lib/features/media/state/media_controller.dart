@@ -27,7 +27,10 @@ class MediaController extends Notifier<MediaState?> {
     _subscription = ref.watch(connectionMessagesProvider).listen(_onWsMessage);
 
     // Reset when disconnected or idle
-    ref.listen<ConnectionStatus>(connectionControllerProvider, (previous, next) {
+    ref.listen<ConnectionStatus>(connectionControllerProvider, (
+      previous,
+      next,
+    ) {
       if (next is! ConnectionConnected) {
         state = null;
         _lastArtVersion = null;
@@ -99,6 +102,11 @@ class MediaController extends Notifier<MediaState?> {
   }
 
   void seek(double positionSeconds) {
+    final current = state;
+    if (current != null) {
+      state = current.copyWith(positionSeconds: positionSeconds);
+    }
+
     _send(
       WsMessage(
         type: WsTypes.mediaSeek,
@@ -112,8 +120,85 @@ class MediaController extends Notifier<MediaState?> {
   }
 }
 
-final mediaControllerProvider =
-    NotifierProvider<MediaController, MediaState?>(MediaController.new);
+final mediaControllerProvider = NotifierProvider<MediaController, MediaState?>(
+  MediaController.new,
+);
+
+class MediaPositionController extends Notifier<double> {
+  Timer? _timer;
+  MediaState? _media;
+  double _anchorPosition = 0;
+  DateTime _anchorTime = DateTime.now();
+
+  @override
+  double build() {
+    ref.onDispose(() {
+      _timer?.cancel();
+      _timer = null;
+    });
+
+    final media = ref.watch(mediaControllerProvider);
+    final previous = _media;
+    final sameSnapshot =
+        previous != null &&
+        media != null &&
+        previous.available == media.available &&
+        previous.title == media.title &&
+        previous.artist == media.artist &&
+        previous.album == media.album &&
+        previous.sourceApp == media.sourceApp &&
+        previous.playing == media.playing &&
+        previous.durationSeconds == media.durationSeconds &&
+        previous.canSeek == media.canSeek &&
+        (previous.positionSeconds - media.positionSeconds).abs() < 0.001;
+
+    _media = media;
+
+    if (!sameSnapshot) {
+      _anchorPosition = media == null || !media.available
+          ? 0
+          : media.positionSeconds;
+      _anchorTime = DateTime.now();
+    }
+
+    if (media != null && media.available && media.playing) {
+      _timer ??= Timer.periodic(
+        const Duration(milliseconds: 500),
+        (_) => _tick(),
+      );
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
+
+    return _compute();
+  }
+
+  double _compute() {
+    final media = _media;
+    if (media == null || !media.available) return 0;
+    if (!media.playing) return _anchorPosition;
+
+    final elapsed =
+        DateTime.now().difference(_anchorTime).inMilliseconds / 1000.0;
+    final position = _anchorPosition + elapsed;
+
+    if (media.durationSeconds > 0) {
+      return position.clamp(0.0, media.durationSeconds);
+    }
+    return position;
+  }
+
+  void _tick() {
+    final next = _compute();
+    if ((next - state).abs() < 0.05) return;
+    state = next;
+  }
+}
+
+final mediaPositionProvider = NotifierProvider<MediaPositionController, double>(
+  MediaPositionController.new,
+);
 
 final mediaArtProvider = Provider<Uint8List?>((ref) {
   // Watch mediaControllerProvider so that art updates when media changes

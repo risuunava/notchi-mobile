@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:notchi_mobile/app.dart';
 import 'package:notchi_mobile/core/storage/secure_store.dart';
 import 'package:notchi_mobile/features/connection/state/connection_providers.dart';
@@ -76,25 +78,27 @@ void main() {
         child: const NotchiMobileApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
 
     expect(find.text('Imagine'), findsOneWidget);
     expect(find.text('John Lennon'), findsOneWidget);
-    expect(find.text('Spotify'), findsOneWidget);
-    expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+    expect(find.byType(FaIcon), findsOneWidget);
+    expect(find.byIcon(LucideIcons.pause), findsOneWidget);
     expect(find.byType(Slider), findsOneWidget);
 
     // Tap toggle/pause button
-    await tester.tap(find.byIcon(Icons.pause_rounded));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.pause));
+    await tester.pump();
 
     // Tap next button
-    await tester.tap(find.byIcon(Icons.skip_next_rounded));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.skipForward));
+    await tester.pump();
 
     // Tap prev button
-    await tester.tap(find.byIcon(Icons.skip_previous_rounded));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.skipBack));
+    await tester.pump();
   });
 }
 
