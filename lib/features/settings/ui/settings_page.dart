@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -330,6 +330,25 @@ class _ConnectedSettings extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
+        if (status is! ConnectionConnected)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: OutlinedButton.icon(
+              onPressed: () => ref
+                  .read(connectionControllerProvider.notifier)
+                  .reconnect(),
+              icon: const Icon(LucideIcons.refreshCw, size: 17),
+              label: Text(strings.reconnect),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.ink,
+                side: const BorderSide(color: AppColors.border),
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
         OutlinedButton.icon(
           onPressed: onDisconnect,
           icon: const Icon(LucideIcons.link2Off, size: 17),
@@ -548,3 +567,4 @@ class _LanguageCard extends ConsumerWidget {
     );
   }
 }
+

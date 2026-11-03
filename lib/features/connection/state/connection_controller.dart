@@ -56,6 +56,21 @@ class ConnectionController extends Notifier<ConnectionStatus> {
     unawaited(_run(_generation));
   }
 
+  /// Force-drops the current connection and immediately retries.
+  /// Safe to call from any connection state — a no-op if no session is saved.
+  void reconnect() {
+    final session = _session;
+    if (session == null) return;
+
+    _generation++;
+    _manualStop = true;
+    _detach();
+
+    _attempt = 0;
+    _manualStop = false;
+    unawaited(_run(_generation));
+  }
+
   void disconnect([ConnectionStopReason? reason]) {
     final keepStopped = reason == null && state is ConnectionStopped;
 

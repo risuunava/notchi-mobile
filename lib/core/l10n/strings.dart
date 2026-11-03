@@ -433,6 +433,13 @@ class AppStrings {
 
   String get languageIndonesian => 'Bahasa Indonesia';
 
+  String get reconnect => _t('Sambung ulang', 'Reconnect');
+
+  String get reconnectHint => _t(
+    'Coba sambungkan kembali ke PC sekarang.',
+    'Try connecting to the PC again now.',
+  );
+
   String get disconnectDevice => _t('Putuskan koneksi', 'Disconnect');
 
   String get disconnectTitle =>
