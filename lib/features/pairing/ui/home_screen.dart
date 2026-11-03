@@ -37,6 +37,10 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Not paired view
+// ---------------------------------------------------------------------------
+
 class _NotPairedView extends StatelessWidget {
   const _NotPairedView({required this.strings});
 
@@ -120,6 +124,10 @@ class _NotPairedView extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Connected home
+// ---------------------------------------------------------------------------
+
 class _ConnectedHome extends ConsumerStatefulWidget {
   const _ConnectedHome({required this.session});
 
@@ -130,29 +138,29 @@ class _ConnectedHome extends ConsumerStatefulWidget {
 }
 
 class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
-  bool _collapsed = false;
-
-  void _onVerticalDragEnd(DragEndDetails details) {
-    final vy = details.primaryVelocity ?? 0;
-    if (vy < -250) {
-      if (!_collapsed) setState(() => _collapsed = true);
-    } else if (vy > 250) {
-      if (_collapsed) setState(() => _collapsed = false);
-    }
-  }
+  bool _headerCollapsed = false;
+  double _dragAccum = 0;
 
   void _onVerticalDragUpdate(DragUpdateDetails details) {
-    if (details.primaryDelta != null) {
-      if (details.primaryDelta! < -8 && !_collapsed) {
-        setState(() => _collapsed = true);
-      } else if (details.primaryDelta! > 8 && _collapsed) {
-        setState(() => _collapsed = false);
-      }
+    _dragAccum += details.delta.dy;
+    // collapse on drag up >= 36px, expand on drag down >= 36px
+    if (_dragAccum < -36 && !_headerCollapsed) {
+      setState(() => _headerCollapsed = true);
+      _dragAccum = 0;
+    } else if (_dragAccum > 36 && _headerCollapsed) {
+      setState(() => _headerCollapsed = false);
+      _dragAccum = 0;
     }
   }
 
-  void _toggleCollapsed() {
-    setState(() => _collapsed = !_collapsed);
+  void _onVerticalDragEnd(DragEndDetails details) {
+    _dragAccum = 0;
+    final v = details.primaryVelocity ?? 0;
+    if (v < -600 && !_headerCollapsed) {
+      setState(() => _headerCollapsed = true);
+    } else if (v > 600 && _headerCollapsed) {
+      setState(() => _headerCollapsed = false);
+    }
   }
 
   @override
@@ -165,14 +173,14 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         GestureDetector(
+          behavior: HitTestBehavior.translucent,
           onVerticalDragUpdate: _onVerticalDragUpdate,
           onVerticalDragEnd: _onVerticalDragEnd,
-          behavior: HitTestBehavior.translucent,
           child: _Header(
+            session: widget.session,
             status: status,
             dropCount: dropCount,
-            collapsed: _collapsed,
-            onToggleCollapse: _toggleCollapsed,
+            collapsed: _headerCollapsed,
             onPillTap: () =>
                 ref.read(shellTabProvider.notifier).select(dropCount > 0 ? 1 : 3),
           ),
@@ -180,39 +188,51 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 28),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SectionTitle(title: strings.servicesTitle),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Calendar
+                const _CalendarSection(),
+                const SizedBox(height: 8),
+
+                // Services + Windows Information
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final service in _services(strings))
-                        _ServiceChip(
-                          service: service,
-                          onTap: () => _openLink(context, service.url),
+                      _SectionTitle(title: strings.servicesTitle),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final service in _services(strings))
+                            _ServiceChip(
+                              service: service,
+                              onTap: () => _openLink(context, service.url),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      _SectionTitle(title: strings.windowsInfoTitle),
+                      const SizedBox(height: 14),
+                      _PcInfoCard(session: widget.session),
+                      const SizedBox(height: 12),
+                      const SystemStatusCard(),
+                      const SizedBox(height: 24),
+                      Text(
+                        strings.homeSubtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                          height: 1.5,
                         ),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 30),
-                  _SectionTitle(title: strings.pcInfoTitle),
-                  const SizedBox(height: 14),
-                  _PcInfoCard(session: widget.session),
-                  const SizedBox(height: 12),
-                  const SystemStatusCard(),
-                  const SizedBox(height: 24),
-                  Text(
-                    strings.homeSubtitle,
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: AppColors.muted, height: 1.5),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -264,19 +284,23 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
 class _Header extends ConsumerWidget {
   const _Header({
+    required this.session,
     required this.status,
     required this.dropCount,
     required this.collapsed,
-    required this.onToggleCollapse,
     required this.onPillTap,
   });
 
+  final SavedSession session;
   final ConnectionStatus status;
   final int dropCount;
   final bool collapsed;
-  final VoidCallback onToggleCollapse;
   final VoidCallback onPillTap;
 
   LinearGradient _headerGradient(String? sourceApp) {
@@ -301,14 +325,17 @@ class _Header extends ConsumerWidget {
     return const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF0E0E10), Color(0xFF232326), Color(0xFF3A3A3F)],
+      colors: [Color(0xFF000000), Color(0xFF0A1628), Color(0xFF0D2144)],
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppStrings.of(context);
-    final sourceApp = ref.watch(mediaControllerProvider)?.sourceApp;
+    final media = ref.watch(mediaControllerProvider);
+    final artBytes = ref.watch(mediaArtProvider);
+    final sourceApp = media?.sourceApp;
+    final hasMedia = media != null && media.available;
 
     return SafeArea(
       bottom: false,
@@ -317,11 +344,25 @@ class _Header extends ConsumerWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(32),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
+            duration: const Duration(milliseconds: 380),
             curve: Curves.easeOutCubic,
             decoration: BoxDecoration(gradient: _headerGradient(sourceApp)),
             child: Stack(
               children: [
+                // Album art background (low opacity) — hanya di expanded
+                if (hasMedia && artBytes != null && !collapsed)
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.15,
+                      child: Image.memory(
+                        artBytes,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+
+                // Glow effects
                 const Positioned(
                   top: -110,
                   right: -80,
@@ -332,64 +373,83 @@ class _Header extends ConsumerWidget {
                   left: -100,
                   child: _Glow(size: 280, opacity: 0.08),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    18,
-                    collapsed ? 14 : 22,
-                    18,
-                    collapsed ? 12 : 16,
-                  ),
+
+                // Content
+                AnimatedPadding(
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeOutCubic,
+                  padding: collapsed
+                      ? const EdgeInsets.fromLTRB(18, 14, 18, 14)
+                      : const EdgeInsets.fromLTRB(18, 22, 18, 18),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Greeting + PC name + status pill — tersembunyi saat collapsed
                       AnimatedSize(
-                        duration: const Duration(milliseconds: 320),
-                        curve: Curves.easeInOutCubic,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          child: collapsed
-                              ? const SizedBox.shrink(key: ValueKey('empty_top'))
-                              : Column(
-                                  key: const ValueKey('full_top'),
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const _DateTimeHeader(),
-                                    const SizedBox(height: 18),
-                                    _StatusPill(
+                        duration: const Duration(milliseconds: 380),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: collapsed
+                            ? const SizedBox.shrink()
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Greeting / Enjoy label
+                                  AnimatedOpacity(
+                                    opacity: collapsed ? 0 : 1,
+                                    duration: const Duration(milliseconds: 220),
+                                    child: Text(
+                                      hasMedia
+                                          ? strings.enjoyYourApp
+                                          : strings.greetingByTime(
+                                              DateTime.now().hour),
+                                      style: const TextStyle(
+                                        color: Color(0xBFFFFFFF),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+
+                                  // PC name
+                                  AnimatedOpacity(
+                                    opacity: collapsed ? 0 : 1,
+                                    duration: const Duration(milliseconds: 220),
+                                    child: Text(
+                                      session.pcName.toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -1.0,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // Status pill
+                                  AnimatedOpacity(
+                                    opacity: collapsed ? 0 : 1,
+                                    duration: const Duration(milliseconds: 220),
+                                    child: _StatusPill(
                                       dropCount: dropCount,
                                       status: status,
                                       strings: strings,
                                       onTap: onPillTap,
                                     ),
-                                    const SizedBox(height: 14),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      const MediaPlayerCard(),
-                      const SizedBox(height: 6),
-                      Center(
-                        child: GestureDetector(
-                          onTap: onToggleCollapse,
-                          behavior: HitTestBehavior.opaque,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 4,
-                            ),
-                            child: AnimatedRotation(
-                              duration: const Duration(milliseconds: 300),
-                              turns: collapsed ? 0.5 : 0.0,
-                              curve: Curves.easeInOut,
-                              child: const Icon(
-                                LucideIcons.chevronUp,
-                                size: 18,
-                                color: Color(0x80FFFFFF),
+                                  ),
+                                  const SizedBox(height: 14),
+                                ],
                               ),
-                            ),
-                          ),
-                        ),
                       ),
+
+                      // Media player — selalu tampil
+                      const MediaPlayerCard(),
                     ],
                   ),
                 ),
@@ -402,81 +462,10 @@ class _Header extends ConsumerWidget {
   }
 }
 
-class _DateTimeHeader extends StatefulWidget {
-  const _DateTimeHeader();
 
-  @override
-  State<_DateTimeHeader> createState() => _DateTimeHeaderState();
-}
-
-class _DateTimeHeaderState extends State<_DateTimeHeader> {
-  DateTime _now = DateTime.now();
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
-      final now = DateTime.now();
-      if (now.hour != _now.hour || now.minute != _now.minute) {
-        setState(() => _now = now);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          strings.timeLabel(_now),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 44,
-            fontWeight: FontWeight.w600,
-            height: 1,
-            letterSpacing: -1.8,
-          ),
-        ),
-        const Spacer(),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${_now.year}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.w600,
-                height: 1,
-                letterSpacing: -1.2,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              strings.dateShortLabel(_now),
-              style: const TextStyle(
-                color: Color(0xC7FFFFFF),
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.1,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
+// ---------------------------------------------------------------------------
+// Glow decoration
+// ---------------------------------------------------------------------------
 
 class _Glow extends StatelessWidget {
   const _Glow({required this.size, required this.opacity});
@@ -504,6 +493,10 @@ class _Glow extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Status pill
+// ---------------------------------------------------------------------------
+
 class _StatusPill extends StatelessWidget {
   const _StatusPill({
     required this.dropCount,
@@ -519,10 +512,22 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final online = status is ConnectionConnected;
-    final label = dropCount > 0
-        ? strings.dropShelfFiles(dropCount)
-        : (online ? strings.connectionOnline : strings.connectionOffline);
+    final String label;
+    final IconData pillIcon;
+
+    if (dropCount > 0) {
+      label = strings.dropShelfFiles(dropCount);
+      pillIcon = LucideIcons.folderClosed;
+    } else if (status is ConnectionConnected) {
+      label = strings.connectionOnline;
+      pillIcon = LucideIcons.wifi;
+    } else if (status is ConnectionReconnecting) {
+      label = strings.connectionReconnecting;
+      pillIcon = LucideIcons.wifiOff;
+    } else {
+      label = strings.connectionOffline;
+      pillIcon = LucideIcons.wifiOff;
+    }
 
     return Material(
       color: Colors.white.withValues(alpha: 0.10),
@@ -546,7 +551,7 @@ class _StatusPill extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  dropCount > 0 ? LucideIcons.folderClosed : LucideIcons.wifi,
+                  pillIcon,
                   size: 17,
                   color: Colors.white,
                 ),
@@ -577,6 +582,219 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Calendar section
+// ---------------------------------------------------------------------------
+
+class _CalendarSection extends StatefulWidget {
+  const _CalendarSection();
+
+  @override
+  State<_CalendarSection> createState() => _CalendarSectionState();
+}
+
+class _CalendarSectionState extends State<_CalendarSection> {
+  late DateTime _displayMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _displayMonth = DateTime(now.year, now.month);
+  }
+
+  void _prevMonth() {
+    setState(() {
+      _displayMonth = DateTime(_displayMonth.year, _displayMonth.month - 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _displayMonth = DateTime(_displayMonth.year, _displayMonth.month + 1);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final today = DateTime.now();
+    final monthName = strings.monthsFull[_displayMonth.month - 1];
+    final year = _displayMonth.year;
+
+    // First day of month and how many days
+    final firstDay = DateTime(_displayMonth.year, _displayMonth.month, 1);
+    final daysInMonth =
+        DateTime(_displayMonth.year, _displayMonth.month + 1, 0).day;
+
+    // weekday of first day: Monday=1 ... Sunday=7, but calendar starts Sunday=0
+    // Convert: Sunday=0, Mon=1, ..., Sat=6
+    int startWeekday = firstDay.weekday % 7; // Mon=1->1, Sun=7->0
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          // Month header
+          Row(
+            children: [
+              _CalNavButton(
+                icon: LucideIcons.chevronLeft,
+                onTap: _prevMonth,
+              ),
+              Expanded(
+                child: Text(
+                  '$monthName $year',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              _CalNavButton(
+                icon: LucideIcons.chevronRight,
+                onTap: _nextMonth,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Day headers
+          Row(
+            children: [
+              for (final day in strings.calendarDaysShort)
+                Expanded(
+                  child: Text(
+                    day,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Day grid
+          _buildGrid(today, startWeekday, daysInMonth),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrid(DateTime today, int startWeekday, int daysInMonth) {
+    final cells = <Widget>[];
+
+    // Empty leading cells
+    for (int i = 0; i < startWeekday; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+
+    // Day cells
+    for (int d = 1; d <= daysInMonth; d++) {
+      final isToday = today.year == _displayMonth.year &&
+          today.month == _displayMonth.month &&
+          today.day == d;
+
+      cells.add(_DayCell(day: d, isToday: isToday));
+    }
+
+    // Build rows of 7
+    final rows = <Widget>[];
+    for (int i = 0; i < cells.length; i += 7) {
+      final rowCells = cells.sublist(i, (i + 7).clamp(0, cells.length));
+      while (rowCells.length < 7) {
+        rowCells.add(const SizedBox.shrink());
+      }
+      rows.add(
+        Row(
+          children: rowCells.map((c) => Expanded(child: c)).toList(),
+        ),
+      );
+      if (i + 7 < cells.length) rows.add(const SizedBox(height: 4));
+    }
+
+    return Column(children: rows);
+  }
+}
+
+class _CalNavButton extends StatelessWidget {
+  const _CalNavButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: AppColors.soft,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, size: 16, color: AppColors.ink),
+      ),
+    );
+  }
+}
+
+class _DayCell extends StatelessWidget {
+  const _DayCell({required this.day, required this.isToday});
+
+  final int day;
+  final bool isToday;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 32,
+          height: 32,
+          decoration: isToday
+              ? BoxDecoration(
+                  color: const Color(0xFF1DB954),
+                  shape: BoxShape.circle,
+                )
+              : null,
+          child: Center(
+            child: Text(
+              '$day',
+              style: TextStyle(
+                color: isToday ? Colors.white : AppColors.ink,
+                fontSize: 13,
+                fontWeight:
+                    isToday ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section title
+// ---------------------------------------------------------------------------
+
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});
 
@@ -595,6 +813,10 @@ class _SectionTitle extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Service chip
+// ---------------------------------------------------------------------------
 
 class _ServiceLink {
   const _ServiceLink({
@@ -655,6 +877,10 @@ class _ServiceChip extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// PC Info Card
+// ---------------------------------------------------------------------------
 
 class _PcInfoCard extends StatelessWidget {
   const _PcInfoCard({required this.session});

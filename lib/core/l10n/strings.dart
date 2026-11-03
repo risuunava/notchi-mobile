@@ -341,6 +341,38 @@ class AppStrings {
 
   String get pcInfoTitle => _t('Informasi PC', 'PC Information');
 
+  String get windowsInfoTitle => _t('Informasi Windows', 'Windows Information');
+
+  String get enjoyYourApp => _t('Nikmati Aplikasinya', 'Enjoy your App');
+
+  String greetingByTime(int hour) {
+    if (_isIndonesian) {
+      if (hour < 11) return 'Selamat Pagi';
+      if (hour < 15) return 'Selamat Siang';
+      if (hour < 18) return 'Selamat Sore';
+      return 'Selamat Malam';
+    } else {
+      if (hour < 12) return 'Good Morning';
+      if (hour < 17) return 'Good Afternoon';
+      if (hour < 20) return 'Good Evening';
+      return 'Good Night';
+    }
+  }
+
+  List<String> get calendarDaysShort => _isIndonesian
+      ? const ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+      : const ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  List<String> get monthsFull => _isIndonesian
+      ? const [
+          'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+        ]
+      : const [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December',
+        ];
+
   String get pcNameLabel => _t('Nama PC', 'PC name');
 
   String get ipAddressLabel => _t('Alamat IP', 'IP address');
