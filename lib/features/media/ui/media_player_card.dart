@@ -44,158 +44,170 @@ class _MediaPlayerCardState extends ConsumerState<MediaPlayerCard> {
         ? (currentPos / duration).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 30,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  width: 58,
-                  height: 58,
-                  child: ColoredBox(
-                    color: AppColors.soft,
-                    child: artBytes != null
-                        ? Image.memory(
-                            artBytes,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const _ArtPlaceholder(),
-                          )
-                        : const _ArtPlaceholder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 30,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      media.title.isNotEmpty ? media.title : '—',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: 58,
+                        height: 58,
+                        color: AppColors.soft,
+                        child: artBytes != null
+                            ? Image.memory(
+                                artBytes,
+                                width: 58,
+                                height: 58,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    const _ArtPlaceholder(),
+                              )
+                            : const _ArtPlaceholder(),
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      media.artist.isNotEmpty ? media.artist : '—',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12.5,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            media.title.isNotEmpty ? media.title : '—',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            media.artist.isNotEmpty ? media.artist : '—',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    if (_brandFor(media.sourceApp) != null) ...[
+                      const SizedBox(width: 12),
+                      _SourceAppIcon(sourceApp: media.sourceApp),
+                    ],
                   ],
                 ),
-              ),
-              if (_brandFor(media.sourceApp) != null) ...[
-                const SizedBox(width: 12),
-                _SourceAppIcon(sourceApp: media.sourceApp),
-              ],
-            ],
-          ),
-          if (media.canSeek && duration > 0) ...[
-            const SizedBox(height: 14),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-              ),
-              child: Slider(
-                value: progress,
-                onChanged: (value) {
-                  setState(() {
-                    _draggingPosition = value * duration;
-                  });
-                },
-                onChangeEnd: (value) {
-                  final target = value * duration;
-                  ref.read(mediaControllerProvider.notifier).seek(target);
-                  setState(() {
-                    _draggingPosition = null;
-                  });
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _formatTime(currentPos),
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
+                if (media.canSeek && duration > 0) ...[
+                  const SizedBox(height: 14),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 3,
+                      thumbShape:
+                          const RoundSliderThumbShape(enabledThumbRadius: 5),
+                      overlayShape:
+                          const RoundSliderOverlayShape(overlayRadius: 12),
+                    ),
+                    child: Slider(
+                      value: progress,
+                      onChanged: (value) {
+                        setState(() {
+                          _draggingPosition = value * duration;
+                        });
+                      },
+                      onChangeEnd: (value) {
+                        final target = value * duration;
+                        ref.read(mediaControllerProvider.notifier).seek(target);
+                        setState(() {
+                          _draggingPosition = null;
+                        });
+                      },
                     ),
                   ),
-                  Text(
-                    _formatTime(duration),
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatTime(currentPos),
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          _formatTime(duration),
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _ControlIcon(
+                      icon: LucideIcons.skipBack,
+                      tooltip: strings.mediaPrevious,
+                      iconSize: 26,
+                      padding: const EdgeInsets.all(10),
+                      onPressed: () =>
+                          ref.read(mediaControllerProvider.notifier).previous(),
+                    ),
+                    const SizedBox(width: 24),
+                    _ControlIcon(
+                      icon: media.playing ? LucideIcons.pause : LucideIcons.play,
+                      tooltip:
+                          media.playing ? strings.mediaPause : strings.mediaPlay,
+                      iconSize: 32,
+                      padding: const EdgeInsets.all(10),
+                      onPressed: () =>
+                          ref.read(mediaControllerProvider.notifier).toggle(),
+                    ),
+                    const SizedBox(width: 24),
+                    _ControlIcon(
+                      icon: LucideIcons.skipForward,
+                      tooltip: strings.mediaNext,
+                      iconSize: 26,
+                      padding: const EdgeInsets.all(10),
+                      onPressed: () =>
+                          ref.read(mediaControllerProvider.notifier).next(),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _ControlIcon(
-                icon: LucideIcons.skipBack,
-                tooltip: strings.mediaPrevious,
-                iconSize: 26,
-                padding: const EdgeInsets.all(10),
-                onPressed: () =>
-                    ref.read(mediaControllerProvider.notifier).previous(),
-              ),
-              const SizedBox(width: 24),
-              _ControlIcon(
-                icon: media.playing ? LucideIcons.pause : LucideIcons.play,
-                tooltip: media.playing ? strings.mediaPause : strings.mediaPlay,
-                iconSize: 32,
-                padding: const EdgeInsets.all(10),
-                onPressed: () =>
-                    ref.read(mediaControllerProvider.notifier).toggle(),
-              ),
-              const SizedBox(width: 24),
-              _ControlIcon(
-                icon: LucideIcons.skipForward,
-                tooltip: strings.mediaNext,
-                iconSize: 26,
-                padding: const EdgeInsets.all(10),
-                onPressed: () =>
-                    ref.read(mediaControllerProvider.notifier).next(),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
