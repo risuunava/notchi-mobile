@@ -58,9 +58,9 @@ class ApiClient implements NotchiApi {
           dio ??
           Dio(
             BaseOptions(
-              connectTimeout: const Duration(seconds: 10),
-              sendTimeout: const Duration(seconds: 65),
-              receiveTimeout: const Duration(seconds: 65),
+              connectTimeout: const Duration(seconds: 15),
+              sendTimeout: const Duration(seconds: 120),
+              receiveTimeout: const Duration(seconds: 120),
               headers: const {'Accept': 'application/json'},
             ),
           );
