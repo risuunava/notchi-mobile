@@ -267,7 +267,7 @@ class AppStrings {
 
   String get navSettings => _t('Pengaturan', 'Setting');
 
-  List<String> get _weekdays => _isIndonesian
+  List<String> get weekdaysFull => _isIndonesian
       ? const ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
       : const [
           'Monday',
@@ -278,6 +278,10 @@ class AppStrings {
           'Saturday',
           'Sunday',
         ];
+
+  List<String> get _weekdays => weekdaysFull;
+
+  List<String> get monthsShort => _monthsShort;
 
   List<String> get _monthsShort => _isIndonesian
       ? const [
@@ -372,6 +376,12 @@ class AppStrings {
           'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December',
         ];
+
+  String get calendarCompactTooltip =>
+      _t('Ciutkan kalender (Cubit)', 'Compact calendar (Pinch)');
+
+  String get calendarExpandTooltip =>
+      _t('Buka kalender penuh (Perbesar)', 'Expand full calendar (Zoom)');
 
   String get pcNameLabel => _t('Nama PC', 'PC name');
 

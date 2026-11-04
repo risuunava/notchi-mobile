@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -594,13 +595,19 @@ class _CalendarSection extends StatefulWidget {
 }
 
 class _CalendarSectionState extends State<_CalendarSection> {
+  bool _isCompact = false;
   late DateTime _displayMonth;
+  late DateTime _selectedDate;
+
+  double _dragAccumY = 0;
+  bool _dragTriggered = false;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _displayMonth = DateTime(now.year, now.month);
+    _selectedDate = now;
   }
 
   void _prevMonth() {
@@ -615,6 +622,57 @@ class _CalendarSectionState extends State<_CalendarSection> {
     });
   }
 
+  void _setCompact(bool compact) {
+    if (_isCompact == compact) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isCompact = compact;
+    });
+  }
+
+  void _returnToCurrentPosition() {
+    HapticFeedback.lightImpact();
+    final now = DateTime.now();
+    setState(() {
+      _isCompact = false;
+      _displayMonth = DateTime(now.year, now.month);
+      _selectedDate = now;
+    });
+  }
+
+  void _onVerticalDragStart(DragStartDetails details) {
+    _dragAccumY = 0;
+    _dragTriggered = false;
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    _dragAccumY += details.primaryDelta ?? 0;
+
+    // Geser ke atas di area kalender -> langsung compact
+    if (!_isCompact && _dragAccumY < -20 && !_dragTriggered) {
+      _dragTriggered = true;
+      _setCompact(true);
+    }
+    // Geser ke bawah saat compact -> kalender terbuka kembali
+    else if (_isCompact && _dragAccumY > 20 && !_dragTriggered) {
+      _dragTriggered = true;
+      _returnToCurrentPosition();
+    }
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    final v = details.primaryVelocity ?? 0;
+    if (!_dragTriggered) {
+      if (!_isCompact && v < -200) {
+        _setCompact(true);
+      } else if (_isCompact && v > 200) {
+        _returnToCurrentPosition();
+      }
+    }
+    _dragAccumY = 0;
+    _dragTriggered = false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -622,15 +680,140 @@ class _CalendarSectionState extends State<_CalendarSection> {
     final monthName = strings.monthsFull[_displayMonth.month - 1];
     final year = _displayMonth.year;
 
-    // First day of month and how many days
     final firstDay = DateTime(_displayMonth.year, _displayMonth.month, 1);
     final daysInMonth =
         DateTime(_displayMonth.year, _displayMonth.month + 1, 0).day;
+    final startWeekday = firstDay.weekday % 7;
 
-    // weekday of first day: Monday=1 ... Sunday=7, but calendar starts Sunday=0
-    // Convert: Sunday=0, Mon=1, ..., Sat=6
-    int startWeekday = firstDay.weekday % 7; // Mon=1->1, Sun=7->0
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragStart: _onVerticalDragStart,
+      onVerticalDragUpdate: _onVerticalDragUpdate,
+      onVerticalDragEnd: _onVerticalDragEnd,
+      child: AnimatedCrossFade(
+        duration: const Duration(milliseconds: 240),
+        sizeCurve: Curves.easeOutCubic,
+        crossFadeState: _isCompact
+            ? CrossFadeState.showFirst
+            : CrossFadeState.showSecond,
+        firstChild: _buildCompactView(strings),
+        secondChild: _buildFullView(
+          strings,
+          today,
+          monthName,
+          year,
+          startWeekday,
+          daysInMonth,
+        ),
+      ),
+    );
+  }
 
+  /// Mode Compact: Menampilkan Hari, Tanggal, Bulan, Tahun (Hitam Putih, Clean & Profesional)
+  Widget _buildCompactView(AppStrings strings) {
+    final dayName = strings.weekdaysFull[_selectedDate.weekday - 1];
+    final monthName = strings.monthsFull[_selectedDate.month - 1];
+    final monthShort = strings.monthsShort[_selectedDate.month - 1];
+    final day = _selectedDate.day;
+    final year = _selectedDate.year;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: _returnToCurrentPosition,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              children: [
+                // Date badge hitam putih yang rapi & profesional
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.ink,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        monthShort.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xB3FFFFFF),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      Text(
+                        '$day',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Informasi Hari, Tanggal, Bulan, dan Tahun
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Hari
+                      Text(
+                        dayName,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Tanggal, Bulan, Tahun
+                      Text(
+                        '$day $monthName $year',
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Mode Penuh: Menampilkan grid kalender bulanan lengkap tanpa icon scale
+  Widget _buildFullView(
+    AppStrings strings,
+    DateTime today,
+    String monthName,
+    int year,
+    int startWeekday,
+    int daysInMonth,
+  ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -641,7 +824,7 @@ class _CalendarSectionState extends State<_CalendarSection> {
       ),
       child: Column(
         children: [
-          // Month header
+          // Month header with navigation (tanpa icon scale)
           Row(
             children: [
               _CalNavButton(
@@ -649,14 +832,17 @@ class _CalendarSectionState extends State<_CalendarSection> {
                 onTap: _prevMonth,
               ),
               Expanded(
-                child: Text(
-                  '$monthName $year',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
+                child: GestureDetector(
+                  onTap: _returnToCurrentPosition,
+                  child: Text(
+                    '$monthName $year',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
               ),
@@ -707,8 +893,23 @@ class _CalendarSectionState extends State<_CalendarSection> {
       final isToday = today.year == _displayMonth.year &&
           today.month == _displayMonth.month &&
           today.day == d;
+      final isSelected = _selectedDate.year == _displayMonth.year &&
+          _selectedDate.month == _displayMonth.month &&
+          _selectedDate.day == d;
 
-      cells.add(_DayCell(day: d, isToday: isToday));
+      cells.add(
+        _DayCell(
+          day: d,
+          isToday: isToday,
+          isSelected: isSelected,
+          onTap: () {
+            setState(() {
+              _selectedDate =
+                  DateTime(_displayMonth.year, _displayMonth.month, d);
+            });
+          },
+        ),
+      );
     }
 
     // Build rows of 7
@@ -754,34 +955,59 @@ class _CalNavButton extends StatelessWidget {
 }
 
 class _DayCell extends StatelessWidget {
-  const _DayCell({required this.day, required this.isToday});
+  const _DayCell({
+    required this.day,
+    required this.isToday,
+    this.isSelected = false,
+    this.onTap,
+  });
 
   final int day;
   final bool isToday;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final decoration = isToday
+        ? const BoxDecoration(
+            color: AppColors.ink,
+            shape: BoxShape.circle,
+          )
+        : isSelected
+            ? BoxDecoration(
+                color: AppColors.soft,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.ink, width: 1.5),
+              )
+            : null;
+
+    final textColor = isToday
+        ? Colors.white
+        : isSelected
+            ? AppColors.ink
+            : AppColors.ink;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 32,
-          height: 32,
-          decoration: isToday
-              ? BoxDecoration(
-                  color: const Color(0xFF1DB954),
-                  shape: BoxShape.circle,
-                )
-              : null,
-          child: Center(
-            child: Text(
-              '$day',
-              style: TextStyle(
-                color: isToday ? Colors.white : AppColors.ink,
-                fontSize: 13,
-                fontWeight:
-                    isToday ? FontWeight.w700 : FontWeight.w400,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 32,
+            height: 32,
+            decoration: decoration,
+            child: Center(
+              child: Text(
+                '$day',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13,
+                  fontWeight:
+                      isToday || isSelected ? FontWeight.w700 : FontWeight.w400,
+                ),
               ),
             ),
           ),
