@@ -15,14 +15,6 @@ class DropShelfCard extends ConsumerStatefulWidget {
 }
 
 class _DropShelfCardState extends ConsumerState<DropShelfCard> {
-  final _textController = TextEditingController();
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
   Future<void> _pickAndSendFile() async {
     final files = await FilePicker.pickFiles();
     if (files.isNotEmpty) {
@@ -39,43 +31,6 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
             .sendFile(filePath: '', fileName: file.name, fileBytes: bytes);
       }
     }
-  }
-
-  void _showSendTextDialog(BuildContext context) {
-    final strings = AppStrings.of(context);
-    _textController.clear();
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(strings.sendText),
-        content: TextField(
-          controller: _textController,
-          autofocus: true,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: strings.textToShelfHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(strings.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final text = _textController.text.trim();
-              if (text.isNotEmpty) {
-                Navigator.of(dialogCtx).pop();
-                ref.read(shelfControllerProvider.notifier).sendText(text);
-              }
-            },
-            child: Text(strings.send),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -246,12 +201,6 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
           onPressed: _pickAndSendFile,
           icon: const Icon(LucideIcons.uploadCloud, size: 17),
           label: Text(strings.sendFile),
-        ),
-        const SizedBox(height: 9),
-        OutlinedButton.icon(
-          onPressed: () => _showSendTextDialog(context),
-          icon: const Icon(LucideIcons.fileText, size: 17),
-          label: Text(strings.sendText),
         ),
       ],
     );

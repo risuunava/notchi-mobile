@@ -103,11 +103,14 @@ void main() {
       expect(state.lastResult?.name, 'note.txt');
       expect(api.shelfCalls, 1);
       expect(api.lastShelfText, 'Hello drop shelf');
+      expect(state.history, hasLength(1));
+      expect(state.history.first.content, 'Hello drop shelf');
+      expect(state.history.first.isText, isTrue);
 
       container.dispose();
     });
 
-    test('sends file and updates progress', () async {
+    test('sends file and updates progress and deletes history entry', () async {
       final api = FakeApi(
         shelfResult: const ShelfUploadResult(
           id: 'img-1',
@@ -138,6 +141,13 @@ void main() {
       expect(state.lastResult?.name, 'photo.jpg');
       expect(api.shelfCalls, 1);
       expect(api.lastShelfFilePath, '/tmp/photo.jpg');
+      expect(state.history, hasLength(1));
+      expect(state.history.first.filePath, '/tmp/photo.jpg');
+      expect(state.history.first.isText, isFalse);
+
+      // Delete the entry
+      await ctrl.deleteHistoryEntry(state.history.first.id);
+      expect(container.read(shelfControllerProvider).history, isEmpty);
 
       container.dispose();
     });

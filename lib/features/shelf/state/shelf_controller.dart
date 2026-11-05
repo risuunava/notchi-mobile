@@ -103,8 +103,15 @@ class ShelfController extends Notifier<ShelfUploadState> {
   Future<void> _recordSuccess(
     ShelfUploadResult result, {
     required bool isText,
+    String? filePath,
+    String? content,
   }) async {
-    final entry = ShelfHistoryEntry.fromUpload(result, isText: isText);
+    final entry = ShelfHistoryEntry.fromUpload(
+      result,
+      isText: isText,
+      filePath: filePath,
+      content: content,
+    );
     final history = [entry, ...state.history].take(_maxHistory).toList();
 
     state = state.copyWith(
@@ -124,6 +131,12 @@ class ShelfController extends Notifier<ShelfUploadState> {
     } catch (_) {
       // Nothing else to do if the stored history cannot be removed.
     }
+  }
+
+  Future<void> deleteHistoryEntry(String id) async {
+    final history = state.history.where((entry) => entry.id != id).toList();
+    state = state.copyWith(history: history);
+    await _persistHistory(history);
   }
 
   Future<void> sendText(String text) async {
@@ -151,7 +164,7 @@ class ShelfController extends Notifier<ShelfUploadState> {
         cancelToken: _cancelToken,
       );
 
-      await _recordSuccess(result, isText: true);
+      await _recordSuccess(result, isText: true, content: text);
     } on ApiError catch (e) {
       state = state.copyWith(status: ShelfUploadStatus.error, error: e);
     } catch (e) {
@@ -198,7 +211,11 @@ class ShelfController extends Notifier<ShelfUploadState> {
         },
       );
 
-      await _recordSuccess(result, isText: false);
+      await _recordSuccess(
+        result,
+        isText: false,
+        filePath: filePath.isNotEmpty ? filePath : null,
+      );
     } on ApiError catch (e) {
       state = state.copyWith(status: ShelfUploadStatus.error, error: e);
     } catch (e) {

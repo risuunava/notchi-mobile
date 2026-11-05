@@ -25,6 +25,8 @@ class ShelfHistoryEntry {
     required this.isText,
     required this.createdAt,
     this.size,
+    this.filePath,
+    this.content,
   });
 
   final String id;
@@ -32,10 +34,14 @@ class ShelfHistoryEntry {
   final bool isText;
   final DateTime createdAt;
   final int? size;
+  final String? filePath;
+  final String? content;
 
   factory ShelfHistoryEntry.fromUpload(
     ShelfUploadResult result, {
     required bool isText,
+    String? filePath,
+    String? content,
   }) {
     return ShelfHistoryEntry(
       id: result.id,
@@ -43,6 +49,8 @@ class ShelfHistoryEntry {
       size: result.size,
       isText: isText,
       createdAt: DateTime.now(),
+      filePath: filePath,
+      content: content,
     );
   }
 
@@ -55,6 +63,8 @@ class ShelfHistoryEntry {
       createdAt:
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      filePath: json['filePath'] as String?,
+      content: json['content'] as String?,
     );
   }
 
@@ -65,6 +75,8 @@ class ShelfHistoryEntry {
       if (size != null) 'size': size,
       'isText': isText,
       'createdAt': createdAt.toIso8601String(),
+      if (filePath != null) 'filePath': filePath,
+      if (content != null) 'content': content,
     };
   }
 }

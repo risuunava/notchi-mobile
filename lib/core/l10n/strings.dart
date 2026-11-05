@@ -399,8 +399,8 @@ class AppStrings {
   );
 
   String get dropShelfHint => _t(
-    'Pilih file atau kirim catatan, lalu lihat riwayatnya di bawah.',
-    'Pick a file or send a note, then see its history below.',
+    'Pilih file untuk dikirim ke Drop Shelf PC, lalu lihat riwayatnya di bawah.',
+    'Pick a file to send to the PC Drop Shelf, then see its history below.',
   );
 
   String get droppedFilesTitle =>
@@ -514,6 +514,36 @@ class AppStrings {
     '$count file di Drop Shelf',
     '$count ${count == 1 ? 'file' : 'files'} in Drop Shelf',
   );
+
+  String dropShelfNotes(int count) => _t(
+    count == 1 ? 'Note di Drop Shelf' : '$count note di Drop Shelf',
+    count == 1 ? 'Note in Drop Shelf' : '$count notes in Drop Shelf',
+  );
+
+  String get open => _t('Buka', 'Open');
+
+  String get close => _t('Tutup', 'Close');
+
+  String get copyText => _t('Salin teks', 'Copy text');
+
+  String get copiedToClipboard =>
+      _t('Tersalin ke papan klip', 'Copied to clipboard');
+
+  String get fileDetails => _t('Detail File', 'File details');
+
+  String get deleteHistoryItemTitle =>
+      _t('Hapus dari riwayat?', 'Delete from history?');
+
+  String get deleteHistoryItemBody => _t(
+    'Item ini akan dihapus dari riwayat ponsel.',
+    'This item will be removed from phone history.',
+  );
+
+  String get historyItemDeleted =>
+      _t('Item dihapus dari riwayat', 'Item deleted from history');
+
+  String get fileSentToPc =>
+      _t('File sudah dikirim ke Drop Shelf PC.', 'File was sent to PC Drop Shelf.');
 
   String get waitingPcStatus =>
       _t('Menunggu data status PC...', 'Waiting for PC status...');
