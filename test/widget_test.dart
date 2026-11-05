@@ -32,7 +32,6 @@ void main() {
     expect(find.text('Scan QR'), findsOneWidget);
     expect(find.text('Connect manually'), findsOneWidget);
     expect(find.text('Setting'), findsNothing);
-    expect(find.byTooltip('Report connection issue'), findsOneWidget);
   });
 
   testWidgets('home shows the stored PC after pairing', (tester) async {
@@ -63,10 +62,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Connected to LAPTOP-TEST'), findsOneWidget);
-    expect(find.text('192.168.1.10:8765'), findsOneWidget);
-    expect(find.text('PC Information'), findsOneWidget);
+    expect(find.text('192.168.1.10:8765'), findsNothing);
+    expect(find.text('Windows Information'), findsOneWidget);
     expect(find.text('Setting'), findsOneWidget);
-    expect(find.byTooltip('Report connection issue'), findsNothing);
   });
 
   testWidgets('forget revokes the device and clears the local session', (

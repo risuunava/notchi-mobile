@@ -13,6 +13,7 @@ import '../../connection/state/connection_providers.dart';
 import '../../connection/state/connection_status.dart';
 import '../../media/state/media_controller.dart';
 import '../../media/ui/media_player_card.dart';
+import '../../shelf/model/shelf_item.dart';
 import '../../shelf/state/shelf_controller.dart';
 import '../../shell/state/shell_tab_controller.dart';
 import '../../status/ui/system_status_card.dart';
@@ -168,7 +169,7 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final status = ref.watch(connectionControllerProvider);
-    final dropCount = ref.watch(shelfControllerProvider).history.length;
+    final history = ref.watch(shelfControllerProvider).history;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,10 +181,16 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
           child: _Header(
             session: widget.session,
             status: status,
-            dropCount: dropCount,
+            history: history,
             collapsed: _headerCollapsed,
-            onPillTap: () =>
-                ref.read(shellTabProvider.notifier).select(dropCount > 0 ? 1 : 3),
+            onPillTap: () {
+              if (history.isNotEmpty) {
+                final isNote = history.first.isText;
+                ref.read(shellTabProvider.notifier).select(isNote ? 2 : 1);
+              } else {
+                ref.read(shellTabProvider.notifier).select(3);
+              }
+            },
           ),
         ),
         Expanded(
@@ -204,17 +211,7 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
                     children: [
                       _SectionTitle(title: strings.servicesTitle),
                       const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          for (final service in _services(strings))
-                            _ServiceChip(
-                              service: service,
-                              onTap: () => _openLink(context, service.url),
-                            ),
-                        ],
-                      ),
+                      _buildServicesGrid(context, strings),
                       const SizedBox(height: 30),
                       _SectionTitle(title: strings.windowsInfoTitle),
                       const SizedBox(height: 14),
@@ -237,6 +234,37 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildServicesGrid(BuildContext context, AppStrings strings) {
+    final services = _services(strings);
+    return Column(
+      children: [
+        for (var i = 0; i < services.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ServiceChip(
+                  service: services[i],
+                  onTap: () => _openLink(context, services[i].url),
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (i + 1 < services.length)
+                Expanded(
+                  child: _ServiceChip(
+                    service: services[i + 1],
+                    onTap: () => _openLink(context, services[i + 1].url),
+                  ),
+                )
+              else
+                const Spacer(),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -293,14 +321,14 @@ class _Header extends ConsumerWidget {
   const _Header({
     required this.session,
     required this.status,
-    required this.dropCount,
+    required this.history,
     required this.collapsed,
     required this.onPillTap,
   });
 
   final SavedSession session;
   final ConnectionStatus status;
-  final int dropCount;
+  final List<ShelfHistoryEntry> history;
   final bool collapsed;
   final VoidCallback onPillTap;
 
@@ -438,7 +466,7 @@ class _Header extends ConsumerWidget {
                                     opacity: collapsed ? 0 : 1,
                                     duration: const Duration(milliseconds: 220),
                                     child: _StatusPill(
-                                      dropCount: dropCount,
+                                      history: history,
                                       status: status,
                                       strings: strings,
                                       onTap: onPillTap,
@@ -500,13 +528,13 @@ class _Glow extends StatelessWidget {
 
 class _StatusPill extends StatelessWidget {
   const _StatusPill({
-    required this.dropCount,
+    required this.history,
     required this.status,
     required this.strings,
     required this.onTap,
   });
 
-  final int dropCount;
+  final List<ShelfHistoryEntry> history;
   final ConnectionStatus status;
   final AppStrings strings;
   final VoidCallback onTap;
@@ -516,9 +544,17 @@ class _StatusPill extends StatelessWidget {
     final String label;
     final IconData pillIcon;
 
-    if (dropCount > 0) {
-      label = strings.dropShelfFiles(dropCount);
-      pillIcon = LucideIcons.folderClosed;
+    if (history.isNotEmpty) {
+      final latest = history.first;
+      if (latest.isText) {
+        final count = history.where((e) => e.isText).length;
+        label = strings.dropShelfNotes(count);
+        pillIcon = LucideIcons.stickyNote;
+      } else {
+        final count = history.where((e) => !e.isText).length;
+        label = strings.dropShelfFiles(count > 0 ? count : history.length);
+        pillIcon = LucideIcons.folderClosed;
+      }
     } else if (status is ConnectionConnected) {
       label = strings.connectionOnline;
       pillIcon = LucideIcons.wifi;
@@ -1067,34 +1103,45 @@ class _ServiceChip extends StatelessWidget {
     return Material(
       color: AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.border),
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: AppColors.border, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 30,
+                height: 30,
                 decoration: const BoxDecoration(
                   color: AppColors.soft,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(service.icon, size: 15, color: AppColors.ink),
+                child: Icon(service.icon, size: 14, color: AppColors.ink),
               ),
               const SizedBox(width: 9),
-              Text(
-                service.label,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  service.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
                 ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                LucideIcons.arrowUpRight,
+                size: 13,
+                color: AppColors.muted.withValues(alpha: 0.6),
               ),
             ],
           ),
@@ -1141,25 +1188,15 @@ class _PcInfoCard extends StatelessWidget {
           ),
           const SizedBox(width: 13),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.connectedTo(session.pcName),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${session.host}:${session.port}',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-              ],
+            child: Text(
+              strings.connectedTo(session.pcName),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           Container(
