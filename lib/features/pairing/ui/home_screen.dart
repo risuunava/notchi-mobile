@@ -17,6 +17,7 @@ import '../../shelf/model/shelf_item.dart';
 import '../../shelf/state/shelf_controller.dart';
 import '../../shell/state/shell_tab_controller.dart';
 import '../../status/ui/system_status_card.dart';
+import '../../volume/ui/volume_card.dart';
 import '../state/session_providers.dart';
 import 'manual_connect_screen.dart';
 import 'scan_screen.dart';
@@ -202,6 +203,9 @@ class _ConnectedHomeState extends ConsumerState<_ConnectedHome> {
                 // Calendar
                 const _CalendarSection(),
                 const SizedBox(height: 8),
+
+                // PC volume
+                const VolumeCard(),
 
                 // Services + Windows Information
                 Padding(

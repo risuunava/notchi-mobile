@@ -18,6 +18,12 @@ abstract final class WsTypes {
   static const mediaSeek = 'media.seek';
   static const statusSubscribe = 'status.subscribe';
   static const statusUnsubscribe = 'status.unsubscribe';
+
+  static const volumeState = 'volume.state';
+  static const volumeSet = 'volume.set';
+  static const volumeMute = 'volume.mute';
+  static const volumeToggle = 'volume.toggle';
+  static const volumeGet = 'volume.get';
 }
 
 class WsMessage {

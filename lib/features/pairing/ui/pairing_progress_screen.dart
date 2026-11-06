@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/l10n/strings.dart';
+import '../../shell/state/shell_tab_controller.dart';
 import '../state/pairing_providers.dart';
 import '../state/pairing_state.dart';
 
@@ -32,6 +33,8 @@ class PairingProgressScreen extends ConsumerStatefulWidget {
 }
 
 class _PairingProgressScreenState extends ConsumerState<PairingProgressScreen> {
+  bool _autoNavigating = false;
+
   @override
   void initState() {
     super.initState();
@@ -68,9 +71,27 @@ class _PairingProgressScreenState extends ConsumerState<PairingProgressScreen> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
+  void _finishScanAutomatically() {
+    if (_autoNavigating || widget.raw == null) return;
+    _autoNavigating = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(shellTabProvider.notifier).select(0);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+
+    ref.listen<PairingState>(pairingControllerProvider, (previous, next) {
+      if (next is PairingSuccess) {
+        _finishScanAutomatically();
+      }
+    });
+
     final state = ref.watch(pairingControllerProvider);
 
     return Scaffold(

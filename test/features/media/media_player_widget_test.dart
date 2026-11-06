@@ -8,6 +8,7 @@ import 'package:notchi_mobile/core/storage/secure_store.dart';
 import 'package:notchi_mobile/features/connection/state/connection_providers.dart';
 import 'package:notchi_mobile/features/media/model/media_state.dart';
 import 'package:notchi_mobile/features/media/state/media_controller.dart';
+import 'package:notchi_mobile/features/media/ui/media_player_card.dart';
 import 'package:notchi_mobile/features/pairing/state/session_providers.dart';
 
 import '../../helpers/fakes.dart';
@@ -40,10 +41,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No media playing'), findsOneWidget);
-    expect(
-      find.text('Open a music or video app on the PC.'),
-      findsOneWidget,
-    );
+    expect(find.text('Open a music or video app on the PC.'), findsOneWidget);
   });
 
   testWidgets('renders active media info and triggers controls', (
@@ -86,7 +84,13 @@ void main() {
     expect(find.text('John Lennon'), findsOneWidget);
     expect(find.byType(FaIcon), findsOneWidget);
     expect(find.byIcon(LucideIcons.pause), findsOneWidget);
-    expect(find.byType(Slider), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(MediaPlayerCard),
+        matching: find.byType(Slider),
+      ),
+      findsOneWidget,
+    );
 
     // Tap toggle/pause button
     await tester.tap(find.byIcon(LucideIcons.pause));

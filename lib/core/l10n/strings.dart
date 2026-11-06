@@ -95,11 +95,11 @@ class AppStrings {
 
   String get verifyingPc => _t('Memeriksa PC...', 'Checking the PC...');
 
-  String get waitingTitle => _t('Menunggu persetujuan', 'Waiting for approval');
+  String get waitingTitle => _t('Menyelesaikan pairing', 'Finishing pairing');
 
   String get waitingBody => _t(
-    'Setujui "Izinkan perangkat ini?" di Notchi PC.',
-    'Approve "Allow this device?" in Notchi PC.',
+    'Menghubungkan HP ini ke Notchi PC...',
+    'Connecting this phone to Notchi PC...',
   );
 
   String get successTitle => _t('Berhasil terpasang', 'Paired successfully');
@@ -217,6 +217,17 @@ class AppStrings {
   String get mediaPrevious => _t('Sebelumnya', 'Previous');
 
   String get mediaNext => _t('Berikutnya', 'Next');
+
+  String get volumeTitle => _t('Volume PC', 'PC volume');
+
+  String get volumeDescription =>
+      _t('Atur volume speaker PC', 'Adjust PC speaker volume');
+
+  String get volumeMuted => _t('Suara dimatikan', 'Muted');
+
+  String get volumeMute => _t('Matikan suara', 'Mute');
+
+  String get volumeUnmute => _t('Nyalakan suara', 'Unmute');
 
   String get errorFileTooLarge => _t(
     'Ukuran file melebihi batas yang diizinkan di PC.',
@@ -369,12 +380,32 @@ class AppStrings {
 
   List<String> get monthsFull => _isIndonesian
       ? const [
-          'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+          'Januari',
+          'Februari',
+          'Maret',
+          'April',
+          'Mei',
+          'Juni',
+          'Juli',
+          'Agustus',
+          'September',
+          'Oktober',
+          'November',
+          'Desember',
         ]
       : const [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December',
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December',
         ];
 
   String get calendarCompactTooltip =>
@@ -542,8 +573,10 @@ class AppStrings {
   String get historyItemDeleted =>
       _t('Item dihapus dari riwayat', 'Item deleted from history');
 
-  String get fileSentToPc =>
-      _t('File sudah dikirim ke Drop Shelf PC.', 'File was sent to PC Drop Shelf.');
+  String get fileSentToPc => _t(
+    'File sudah dikirim ke Drop Shelf PC.',
+    'File was sent to PC Drop Shelf.',
+  );
 
   String get waitingPcStatus =>
       _t('Menunggu data status PC...', 'Waiting for PC status...');
