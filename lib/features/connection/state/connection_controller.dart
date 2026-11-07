@@ -90,8 +90,12 @@ class ConnectionController extends Notifier<ConnectionStatus> {
   bool send(WsMessage message) {
     final connection = _connection;
     if (connection == null) return false;
-    connection.send(message.encode());
-    return true;
+    try {
+      connection.send(message.encode());
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _run(int generation) async {

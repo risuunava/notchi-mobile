@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -17,6 +19,13 @@ class VolumeCard extends ConsumerStatefulWidget {
 
 class _VolumeCardState extends ConsumerState<VolumeCard> {
   double? _dragLevel;
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,10 +114,22 @@ class _VolumeCardState extends ConsumerState<VolumeCard> {
             child: Slider(
               value: level,
               onChanged: connected
-                  ? (value) => setState(() => _dragLevel = value)
+                  ? (value) {
+                      setState(() => _dragLevel = value);
+                      _debounce?.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 150), () {
+                        _debounce = null;
+                        ref
+                            .read(volumeControllerProvider.notifier)
+                            .setLevel(value);
+                        setState(() => _dragLevel = null);
+                      });
+                    }
                   : null,
               onChangeEnd: connected
                   ? (value) {
+                      _debounce?.cancel();
+                      _debounce = null;
                       ref
                           .read(volumeControllerProvider.notifier)
                           .setLevel(value);
