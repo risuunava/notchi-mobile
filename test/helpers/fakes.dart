@@ -59,6 +59,7 @@ class FakeApi implements NotchiApi {
   int deleteCalls = 0;
   int artCalls = 0;
   int shelfCalls = 0;
+  int downloadCalls = 0;
   int statusCalls = 0;
   int? lastArtVersion;
   String? lastPairingToken;
@@ -67,6 +68,9 @@ class FakeApi implements NotchiApi {
   String? lastSessionToken;
   String? lastShelfText;
   String? lastShelfFilePath;
+  String? lastDownloadFileId;
+  String? lastDownloadSavePath;
+  Object? downloadError;
   ShelfUploadResult shelfResult = const ShelfUploadResult(
     id: 'item-1',
     name: 'test.png',
@@ -159,6 +163,24 @@ class FakeApi implements NotchiApi {
     lastSessionToken = sessionToken;
     if (statusError != null) throw statusError!;
     return statusResult;
+  }
+
+  @override
+  Future<void> downloadShelfFile({
+    required String host,
+    required int port,
+    required String sessionToken,
+    required String fileId,
+    required String savePath,
+    void Function(int count, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    downloadCalls++;
+    lastSessionToken = sessionToken;
+    lastDownloadFileId = fileId;
+    lastDownloadSavePath = savePath;
+    onProgress?.call(100, 100);
+    if (downloadError != null) throw downloadError!;
   }
 }
 

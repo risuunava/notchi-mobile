@@ -24,6 +24,10 @@ abstract final class WsTypes {
   static const volumeMute = 'volume.mute';
   static const volumeToggle = 'volume.toggle';
   static const volumeGet = 'volume.get';
+
+  static const shelfFile = 'shelf.file';
+  static const shelfText = 'shelf.text';
+  static const shelfAck = 'shelf.ack';
 }
 
 class WsMessage {

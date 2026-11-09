@@ -50,6 +50,16 @@ abstract interface class NotchiApi {
     required int port,
     required String sessionToken,
   });
+
+  Future<void> downloadShelfFile({
+    required String host,
+    required int port,
+    required String sessionToken,
+    required String fileId,
+    required String savePath,
+    void Function(int count, int total)? onProgress,
+    CancelToken? cancelToken,
+  });
 }
 
 class ApiClient implements NotchiApi {
@@ -221,6 +231,29 @@ class ApiClient implements NotchiApi {
       throw _mapDioError(error);
     } on FormatException catch (error) {
       throw ApiError(ApiErrorCode.internalError, detail: error.message);
+    }
+  }
+
+  @override
+  Future<void> downloadShelfFile({
+    required String host,
+    required int port,
+    required String sessionToken,
+    required String fileId,
+    required String savePath,
+    void Function(int count, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      await _dio.downloadUri(
+        _uri(host, port, '/shelf/file', {'id': fileId}),
+        savePath,
+        options: Options(headers: _authorization(sessionToken)),
+        onReceiveProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+    } on DioException catch (error) {
+      throw _mapDioError(error);
     }
   }
 

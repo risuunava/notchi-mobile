@@ -151,5 +151,109 @@ void main() {
 
       container.dispose();
     });
+
+    test('receives file from PC via websocket and downloads it', () async {
+      final fakeConn = FakeWsConnection();
+      final fakeConnector = FakeWsConnector(
+        connectHandler: (_, _) async => fakeConn,
+      );
+      final api = FakeApi();
+      final store = InMemoryKeyValueStore();
+      const session = SavedSession(
+        sessionToken: 'token',
+        pcId: 'pc-1',
+        pcName: 'LAPTOP-TEST',
+        host: '192.168.1.10',
+        port: 8765,
+        apiVersion: 1,
+      );
+      await SessionStore(store).saveSession(session);
+
+      final container = makeContainer(
+        api: api,
+        store: store,
+        wsConnector: fakeConnector,
+      );
+      await container.read(savedSessionProvider.future);
+      container.read(connectionControllerProvider.notifier).connect(session);
+      await pumpEventQueue();
+
+      // Trigger build of shelfController
+      container.read(shelfControllerProvider);
+
+      // Simulate incoming shelf.file message from PC
+      fakeConn.incoming.add(
+        const WsMessage(
+          type: WsTypes.shelfFile,
+          data: {
+            'id': 'file-123',
+            'name': 'document.pdf',
+            'size': 2048,
+          },
+        ).encode(),
+      );
+      await pumpEventQueue();
+
+      expect(api.downloadCalls, 1);
+      expect(api.lastDownloadFileId, 'file-123');
+
+      final state = container.read(shelfControllerProvider);
+      expect(state.history, hasLength(1));
+      expect(state.history.first.id, 'file-123');
+      expect(state.history.first.name, 'document.pdf');
+      expect(state.history.first.isIncoming, isTrue);
+      expect(state.history.first.isText, isFalse);
+
+      container.dispose();
+    });
+
+    test('receives text from PC via websocket and stores in history', () async {
+      final fakeConn = FakeWsConnection();
+      final fakeConnector = FakeWsConnector(
+        connectHandler: (_, _) async => fakeConn,
+      );
+      final api = FakeApi();
+      final store = InMemoryKeyValueStore();
+      const session = SavedSession(
+        sessionToken: 'token',
+        pcId: 'pc-1',
+        pcName: 'LAPTOP-TEST',
+        host: '192.168.1.10',
+        port: 8765,
+        apiVersion: 1,
+      );
+      await SessionStore(store).saveSession(session);
+
+      final container = makeContainer(
+        api: api,
+        store: store,
+        wsConnector: fakeConnector,
+      );
+      await container.read(savedSessionProvider.future);
+      container.read(connectionControllerProvider.notifier).connect(session);
+      await pumpEventQueue();
+
+      container.read(shelfControllerProvider);
+
+      // Simulate incoming shelf.text message from PC
+      fakeConn.incoming.add(
+        const WsMessage(
+          type: WsTypes.shelfText,
+          data: {
+            'id': 'txt-999',
+            'text': 'Note from PC',
+          },
+        ).encode(),
+      );
+      await pumpEventQueue();
+
+      final state = container.read(shelfControllerProvider);
+      expect(state.history, hasLength(1));
+      expect(state.history.first.content, 'Note from PC');
+      expect(state.history.first.isIncoming, isTrue);
+      expect(state.history.first.isText, isTrue);
+
+      container.dispose();
+    });
   });
 }

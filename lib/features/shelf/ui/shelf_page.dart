@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../../../core/l10n/strings.dart';
 import '../../../core/theme/app_theme.dart';
@@ -14,31 +14,49 @@ import '../model/shelf_item.dart';
 import '../state/shelf_controller.dart';
 import 'drop_shelf_card.dart';
 
-class ShelfPage extends ConsumerWidget {
+enum ShelfFilter {
+  all,
+  incoming,
+  outgoing,
+}
+
+class ShelfPage extends ConsumerStatefulWidget {
   const ShelfPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ShelfPage> createState() => _ShelfPageState();
+}
+
+class _ShelfPageState extends ConsumerState<ShelfPage> {
+  ShelfFilter _filter = ShelfFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final session = ref.watch(savedSessionProvider);
 
     return SafeArea(
       child: session.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => _buildBody(context, ref, strings),
+        error: (_, _) => _buildBody(context, strings),
         data: (value) =>
-            _buildBody(context, ref, strings, connected: value != null),
+            _buildBody(context, strings, connected: value != null),
       ),
     );
   }
 
   Widget _buildBody(
     BuildContext context,
-    WidgetRef ref,
     AppStrings strings, {
     bool connected = false,
   }) {
-    final history = ref.watch(shelfControllerProvider).history;
+    final allHistory = ref.watch(shelfControllerProvider).history;
+
+    final filteredHistory = switch (_filter) {
+      ShelfFilter.all => allHistory,
+      ShelfFilter.incoming => allHistory.where((e) => e.isIncoming).toList(),
+      ShelfFilter.outgoing => allHistory.where((e) => !e.isIncoming).toList(),
+    };
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 32),
@@ -80,29 +98,231 @@ class ShelfPage extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (history.isNotEmpty)
-                TextButton(
-                  onPressed: () async {
-                    await ref
-                        .read(shelfControllerProvider.notifier)
-                        .clearHistory();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(strings.historyCleared)),
-                      );
-                    }
-                  },
-                  child: Text(strings.clearHistory),
-                ),
+              if (allHistory.isNotEmpty)
+                _buildFilterButton(strings),
             ],
           ),
-          const SizedBox(height: 6),
-          if (history.isEmpty)
+          const SizedBox(height: 10),
+          if (allHistory.isEmpty)
             _EmptyHistory(strings: strings)
+          else if (filteredHistory.isEmpty)
+            _EmptyFilteredHistory(
+              strings: strings,
+              filter: _filter,
+              onReset: () => setState(() => _filter = ShelfFilter.all),
+            )
           else
-            ...history.map((entry) => _HistoryTile(entry: entry)),
+            ...filteredHistory.map((entry) => _HistoryTile(entry: entry)),
         ],
       ],
+    );
+  }
+
+  Widget _buildFilterButton(AppStrings strings) {
+    final isFiltered = _filter != ShelfFilter.all;
+
+    return PopupMenuButton<ShelfFilter>(
+      initialValue: _filter,
+      tooltip: strings.filterTitle,
+      color: AppColors.surface,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      onSelected: (filter) {
+        setState(() => _filter = filter);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: isFiltered ? AppColors.ink : AppColors.soft,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isFiltered ? AppColors.ink : AppColors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _filter == ShelfFilter.incoming
+                  ? LucideIcons.arrowDownToLine
+                  : _filter == ShelfFilter.outgoing
+                      ? LucideIcons.arrowUpFromLine
+                      : LucideIcons.slidersHorizontal,
+              size: 13,
+              color: isFiltered ? Colors.white : AppColors.ink,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _filterLabel(_filter, strings),
+              style: TextStyle(
+                color: isFiltered ? Colors.white : AppColors.ink,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              LucideIcons.chevronDown,
+              size: 13,
+              color: isFiltered ? Colors.white70 : AppColors.muted,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (ctx) => [
+        PopupMenuItem(
+          value: ShelfFilter.all,
+          child: Row(
+            children: [
+              Icon(
+                LucideIcons.layers,
+                size: 15,
+                color: _filter == ShelfFilter.all
+                    ? AppColors.ink
+                    : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  strings.filterAll,
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontWeight: _filter == ShelfFilter.all
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (_filter == ShelfFilter.all)
+                const Icon(LucideIcons.check, size: 15, color: AppColors.ink),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: ShelfFilter.incoming,
+          child: Row(
+            children: [
+              Icon(
+                LucideIcons.arrowDownToLine,
+                size: 15,
+                color: _filter == ShelfFilter.incoming
+                    ? AppColors.ink
+                    : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  strings.filterIncoming,
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontWeight: _filter == ShelfFilter.incoming
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (_filter == ShelfFilter.incoming)
+                const Icon(LucideIcons.check, size: 15, color: AppColors.ink),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: ShelfFilter.outgoing,
+          child: Row(
+            children: [
+              Icon(
+                LucideIcons.arrowUpFromLine,
+                size: 15,
+                color: _filter == ShelfFilter.outgoing
+                    ? AppColors.ink
+                    : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  strings.filterOutgoing,
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontWeight: _filter == ShelfFilter.outgoing
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (_filter == ShelfFilter.outgoing)
+                const Icon(LucideIcons.check, size: 15, color: AppColors.ink),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _filterLabel(ShelfFilter filter, AppStrings strings) {
+    return switch (filter) {
+      ShelfFilter.all => strings.filterAll,
+      ShelfFilter.incoming => strings.filterIncoming,
+      ShelfFilter.outgoing => strings.filterOutgoing,
+    };
+  }
+}
+
+class _EmptyFilteredHistory extends StatelessWidget {
+  const _EmptyFilteredHistory({
+    required this.strings,
+    required this.filter,
+    required this.onReset,
+  });
+
+  final AppStrings strings;
+  final ShelfFilter filter;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = filter == ShelfFilter.incoming
+        ? strings.filterIncoming
+        : strings.filterOutgoing;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            filter == ShelfFilter.incoming
+                ? LucideIcons.arrowDownToLine
+                : LucideIcons.arrowUpFromLine,
+            size: 26,
+            color: AppColors.muted,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '${strings.noFilterResults} ($label)',
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: onReset,
+            child: Text(strings.filterAll),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -169,6 +389,13 @@ class _HistoryTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppStrings.of(context);
+    final isIncoming = entry.isIncoming;
+
+    final fileIcon = entry.isText
+        ? (isIncoming ? LucideIcons.messageSquare : LucideIcons.fileText)
+        : (isIncoming
+            ? LucideIcons.arrowDownToLine
+            : LucideIcons.arrowUpFromLine);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
@@ -188,7 +415,7 @@ class _HistoryTile extends ConsumerWidget {
               borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
-              entry.isText ? LucideIcons.fileText : LucideIcons.file,
+              fileIcon,
               size: 19,
               color: AppColors.ink,
             ),
@@ -210,8 +437,11 @@ class _HistoryTile extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _subtitle(entry),
-                  style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                  _metaLine(entry, strings),
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -335,78 +565,13 @@ class _HistoryTile extends ConsumerWidget {
     if (localPath != null && localPath.isNotEmpty) {
       final file = File(localPath);
       if (await file.exists()) {
-        final isImage = RegExp(
-          r'\.(jpe?g|png|gif|webp|bmp)$',
-          caseSensitive: false,
-        ).hasMatch(localPath);
-
-        if (isImage) {
-          if (!context.mounted) return;
-          await showDialog<void>(
-            context: context,
-            builder: (dialogCtx) => Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Flexible(
-                    child: Image.file(
-                      file,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(entry.name, textAlign: TextAlign.center),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            entry.name,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogCtx).pop(),
-                          child: Text(strings.close),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-          return;
-        }
-
-        try {
-          final uri = Uri.file(localPath);
-          final launched = await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
-          if (launched) return;
-        } catch (_) {}
+        // Try to open with system app via OpenFilex (handles FileProvider on Android)
+        final result = await OpenFilex.open(localPath);
+        if (result.type == ResultType.done) return;
       }
     }
 
+    // Fallback: show file details dialog
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
@@ -429,12 +594,14 @@ class _HistoryTile extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              _subtitle(entry),
+              _metaLine(entry, strings),
               style: const TextStyle(color: AppColors.muted, fontSize: 12),
             ),
             const SizedBox(height: 12),
             Text(
-              strings.fileSentToPc,
+              entry.isIncoming
+                  ? strings.fileReceivedFromPc
+                  : strings.fileSentToPc,
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.ink,
@@ -502,8 +669,9 @@ class _HistoryTile extends ConsumerWidget {
     }
   }
 
-  String _subtitle(ShelfHistoryEntry entry) {
+  String _metaLine(ShelfHistoryEntry entry, AppStrings strings) {
     final parts = <String>[];
+    parts.add(entry.isIncoming ? strings.incomingFromPc : strings.sentToPc);
     if (entry.isText) {
       parts.add('Text');
     } else if (entry.size != null) {

@@ -103,6 +103,61 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
     AppStrings strings,
     ShelfUploadState shelfState,
   ) {
+    if (shelfState.status == ShelfUploadStatus.downloading) {
+      final progress = shelfState.progress;
+      final fileName = shelfState.incomingFileName ?? '';
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(LucideIcons.download, size: 17, color: AppColors.ink),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  fileName.isNotEmpty
+                      ? '${strings.receivingFileFromPc} $fileName'
+                      : strings.downloading,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                progress > 0 ? '${(progress * 100).round()}%' : '...',
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress > 0 ? progress : null,
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () =>
+                  ref.read(shelfControllerProvider.notifier).cancel(),
+              child: Text(strings.cancel),
+            ),
+          ),
+        ],
+      );
+    }
+
     if (shelfState.status == ShelfUploadStatus.uploading) {
       final progress = shelfState.progress;
       return Column(
@@ -153,6 +208,9 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
       );
     }
 
+    final isIncomingLast = shelfState.history.isNotEmpty &&
+        shelfState.history.first.isIncoming;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -167,7 +225,7 @@ class _DropShelfCardState extends ConsumerState<DropShelfCard> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${strings.uploadSuccess}: ${shelfState.lastResult?.name ?? ""}',
+                  '${isIncomingLast ? strings.downloadSuccess : strings.uploadSuccess}: ${shelfState.lastResult?.name ?? ""}',
                   style: const TextStyle(
                     color: AppColors.success,
                     fontSize: 12,

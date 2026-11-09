@@ -578,10 +578,41 @@ class AppStrings {
     'File was sent to PC Drop Shelf.',
   );
 
+  String get fileReceivedFromPc => _t(
+    'File diterima dari PC dan tersimpan di HP.',
+    'File received from PC and saved to phone.',
+  );
+
+  String get downloading => _t('Mengunduh...', 'Downloading...');
+
+  String get downloadSuccess =>
+      _t('File berhasil diterima', 'File received successfully');
+
+  String get downloadFailed =>
+      _t('Gagal mengunduh file dari PC', 'Failed to download file from PC');
+
+  String get receivingFileFromPc =>
+      _t('Menerima file dari PC...', 'Receiving file from PC...');
+
+  String get incomingFromPc => _t('Dari PC', 'From PC');
+
+  String get sentToPc => _t('Ke PC', 'To PC');
+
   String get waitingPcStatus =>
       _t('Menunggu data status PC...', 'Waiting for PC status...');
 
   String get nowPlaying => _t('Sedang diputar', 'Now playing');
 
   String get unknownTrack => _t('Tidak ada media', 'No media');
+
+  String get filterAll => _t('Semua', 'All');
+
+  String get filterIncoming => _t('Dari PC', 'From PC');
+
+  String get filterOutgoing => _t('Ke PC', 'To PC');
+
+  String get filterTitle => _t('Filter', 'Filter');
+
+  String get noFilterResults =>
+      _t('Tidak ada file untuk filter ini', 'No files match this filter');
 }
