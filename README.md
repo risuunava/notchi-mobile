@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/banner.png" alt="Notchi Mobile banner" width="420" />
-</p>
+
 
 <p align="center">
   <a href="README.md">English</a> | <a href="READMEindo.md">Bahasa Indonesia</a>
