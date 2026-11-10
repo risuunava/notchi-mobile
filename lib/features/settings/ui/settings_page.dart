@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -73,7 +73,7 @@ class SettingsPage extends ConsumerWidget {
               _InfoRow(
                 icon: LucideIcons.appWindow,
                 label: strings.appVersionLabel,
-                value: '0.1.0',
+                value: '1.0.0',
               ),
               _InfoRow(
                 icon: LucideIcons.server,
